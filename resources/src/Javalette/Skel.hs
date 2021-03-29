@@ -45,9 +45,9 @@ transItem x = case x of
 transType :: Type -> Result
 transType x = case x of
   Int -> failure x
-  Doub -> failure x
+  Double -> failure x
   Bool -> failure x
-  VoIdent -> failure x
+  Void -> failure x
   Fun type_ types -> failure x
 transExp :: Exp -> Result
 transExp x = case x of
@@ -62,7 +62,7 @@ transExp x = case x of
   ENot exp -> failure x
   EMul exp1 mulop exp2 -> failure x
   EAdd exp1 addop exp2 -> failure x
-  ERel exp1 relop exp2 -> failure x
+  ECmp exp1 cmpop exp2 -> failure x
   EAnd exp1 exp2 -> failure x
   EOr exp1 exp2 -> failure x
 transAddOp :: AddOp -> Result
@@ -74,8 +74,8 @@ transMulOp x = case x of
   OTimes -> failure x
   ODiv -> failure x
   OMod -> failure x
-transRelOp :: RelOp -> Result
-transRelOp x = case x of
+transCmpOp :: CmpOp -> Result
+transCmpOp x = case x of
   OLt -> failure x
   OLtEq -> failure x
   OGt -> failure x

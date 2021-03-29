@@ -53,7 +53,7 @@ data Exp
     | ENot Exp
     | EMul Exp MulOp Exp
     | EAdd Exp AddOp Exp
-    | ERel Exp RelOp Exp
+    | ECmp Exp CmpOp Exp
     | EAnd Exp Exp
     | EOr Exp Exp
   deriving (Eq, Ord, Show, Read)
@@ -64,6 +64,6 @@ data AddOp = OPlus | OMinus
 data MulOp = OTimes | ODiv | OMod
   deriving (Eq, Ord, Show, Read)
 
-data RelOp = OLt | OLtEq | OGt | OGtEq | OEq | ONeq
+data CmpOp = OLt | OLtEq | OGt | OGtEq | OEq | ONeq
   deriving (Eq, Ord, Show, Read)
 

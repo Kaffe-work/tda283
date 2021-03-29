@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-missing-signatures #-}
 {-# LANGUAGE CPP,MagicHash #-}
-{-# LINE 3 "Javalette/Lex.x" #-}
+{-# LINE 3 "src/Javalette/Lex.x" #-}
 
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 {-# OPTIONS_GHC -w #-}
@@ -109,7 +109,7 @@ alex_actions = array (0 :: Int, 10)
   , (0,alex_action_8)
   ]
 
-{-# LINE 40 "Javalette/Lex.x" #-}
+{-# LINE 40 "src/Javalette/Lex.x" #-}
 
 
 tok :: (Posn -> String -> Token) -> (Posn -> String -> Token)
@@ -172,7 +172,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "=" 17 (b "++" 9 (b "(" 5 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 4 N N)) (b "*" 7 (b ")" 6 N N) (b "+" 8 N N))) (b "/" 13 (b "-" 11 (b "," 10 N N) (b "--" 12 N N)) (b "<" 15 (b ";" 14 N N) (b "<=" 16 N N)))) (b "int" 26 (b "double" 22 (b ">=" 20 (b ">" 19 (b "==" 18 N N) N) (b "boolean" 21 N N)) (b "false" 24 (b "else" 23 N N) (b "if" 25 N N))) (b "while" 30 (b "true" 28 (b "return" 27 N N) (b "voIdent" 29 N N)) (b "||" 32 (b "{" 31 N N) (b "}" 33 N N))))
+resWords = b "=" 17 (b "++" 9 (b "(" 5 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 4 N N)) (b "*" 7 (b ")" 6 N N) (b "+" 8 N N))) (b "/" 13 (b "-" 11 (b "," 10 N N) (b "--" 12 N N)) (b "<" 15 (b ";" 14 N N) (b "<=" 16 N N)))) (b "int" 26 (b "double" 22 (b ">=" 20 (b ">" 19 (b "==" 18 N N) N) (b "boolean" 21 N N)) (b "false" 24 (b "else" 23 N N) (b "if" 25 N N))) (b "while" 30 (b "true" 28 (b "return" 27 N N) (b "void" 29 N N)) (b "||" 32 (b "{" 31 N N) (b "}" 33 N N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

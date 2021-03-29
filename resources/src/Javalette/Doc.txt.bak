@@ -108,7 +108,7 @@ All other symbols are terminals.
   |  |  **|**  | //Exp5// 
   | //Exp3// | -> | //Exp3// //AddOp// //Exp4// 
   |  |  **|**  | //Exp4// 
-  | //Exp2// | -> | //Exp2// //RelOp// //Exp3// 
+  | //Exp2// | -> | //Exp2// //CmpOp// //Exp3// 
   |  |  **|**  | //Exp3// 
   | //Exp1// | -> | //Exp2// ``&&`` //Exp1// 
   |  |  **|**  | //Exp2// 
@@ -122,7 +122,7 @@ All other symbols are terminals.
   | //MulOp// | -> | ``*`` 
   |  |  **|**  | ``/`` 
   |  |  **|**  | ``%`` 
-  | //RelOp// | -> | ``<`` 
+  | //CmpOp// | -> | ``<`` 
   |  |  **|**  | ``<=`` 
   |  |  **|**  | ``>`` 
   |  |  **|**  | ``>=`` 

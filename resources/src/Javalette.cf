@@ -18,7 +18,7 @@ separator  Stm "" ;
 Empty.     Stm ::= ";" ;
 SBlock.    Stm ::= Blk ;
 SDecls.    Stm ::= Type [Item] ";" ;
-SInit.     Stm ::= Ident "=" Exp  ";" ;
+SAss.      Stm ::= Ident "=" Exp  ";" ;
 SIncr.     Stm ::= Ident "++"  ";" ;
 SDecr.     Stm ::= Ident "--"  ";" ;
 SReturn.   Stm ::= "return" Exp ";" ;
@@ -35,9 +35,9 @@ separator nonempty Item "," ;
 -- Types ---------------------------------------------------
 
 Int.       Type ::= "int" ;
-Doub.      Type ::= "double" ;
+Double.    Type ::= "double" ;
 Bool.      Type ::= "boolean" ;
-VoIdent.      Type ::= "voIdent" ;
+Void.      Type ::= "void" ;
 
 internal   Fun. Type ::= Type "(" [Type] ")" ;
 
@@ -60,7 +60,7 @@ EMul.      Exp4 ::= Exp4 MulOp Exp5 ;
 
 EAdd.      Exp3 ::= Exp3 AddOp Exp4 ;
 
-ERel.      Exp2 ::= Exp2 RelOp Exp3 ;
+ECmp.      Exp2 ::= Exp2 CmpOp Exp3 ;
 
 EAnd.      Exp1 ::= Exp2 "&&" Exp1 ;
 
@@ -77,12 +77,12 @@ OMinus.     AddOp ::= "-" ;
 OTimes.     MulOp ::= "*" ;
 ODiv.       MulOp ::= "/" ;
 OMod.       MulOp ::= "%" ;
-OLt.        RelOp ::= "<" ;
-OLtEq.      RelOp ::= "<=" ;
-OGt.        RelOp ::= ">" ;
-OGtEq.      RelOp ::= ">=" ;
-OEq.        RelOp ::= "==" ;
-ONeq.       RelOp ::= "!=" ;
+OLt.        CmpOp ::= "<" ;
+OLtEq.      CmpOp ::= "<=" ;
+OGt.        CmpOp ::= ">" ;
+OGtEq.      CmpOp ::= ">=" ;
+OEq.        CmpOp ::= "==" ;
+ONeq.       CmpOp ::= "!=" ;
 
 -- comments ------------------------------------------------
 

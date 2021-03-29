@@ -8,7 +8,7 @@ import Javalette.ErrM
 
 }
 
-%name pProg Prog
+%name pProgram Program
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
@@ -41,7 +41,7 @@ import Javalette.ErrM
   'int' { PT _ (TS _ 26) }
   'return' { PT _ (TS _ 27) }
   'true' { PT _ (TS _ 28) }
-  'voIdent' { PT _ (TS _ 29) }
+  'void' { PT _ (TS _ 29) }
   'while' { PT _ (TS _ 30) }
   '{' { PT _ (TS _ 31) }
   '||' { PT _ (TS _ 32) }
@@ -96,9 +96,9 @@ ListItem :: { [Item] }
 ListItem : Item { (:[]) $1 } | Item ',' ListItem { (:) $1 $3 }
 Type :: { Type }
 Type : 'int' { Javalette.Abs.Int }
-     | 'double' { Javalette.Abs.Doub }
+     | 'double' { Javalette.Abs.Double }
      | 'boolean' { Javalette.Abs.Bool }
-     | 'voIdent' { Javalette.Abs.VoIdent }
+     | 'void' { Javalette.Abs.Void }
 ListType :: { [Type] }
 ListType : {- empty -} { [] }
          | Type { (:[]) $1 }
@@ -123,7 +123,7 @@ Exp3 :: { Exp }
 Exp3 : Exp3 AddOp Exp4 { Javalette.Abs.EAdd $1 $2 $3 }
      | Exp4 { $1 }
 Exp2 :: { Exp }
-Exp2 : Exp2 RelOp Exp3 { Javalette.Abs.ERel $1 $2 $3 }
+Exp2 : Exp2 CmpOp Exp3 { Javalette.Abs.ECmp $1 $2 $3 }
      | Exp3 { $1 }
 Exp1 :: { Exp }
 Exp1 : Exp2 '&&' Exp1 { Javalette.Abs.EAnd $1 $3 } | Exp2 { $1 }
@@ -139,8 +139,8 @@ MulOp :: { MulOp }
 MulOp : '*' { Javalette.Abs.OTimes }
       | '/' { Javalette.Abs.ODiv }
       | '%' { Javalette.Abs.OMod }
-RelOp :: { RelOp }
-RelOp : '<' { Javalette.Abs.OLt }
+CmpOp :: { CmpOp }
+CmpOp : '<' { Javalette.Abs.OLt }
       | '<=' { Javalette.Abs.OLtEq }
       | '>' { Javalette.Abs.OGt }
       | '>=' { Javalette.Abs.OGtEq }

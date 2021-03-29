@@ -204,8 +204,8 @@ happyIn29 x = Happy_GHC_Exts.unsafeCoerce# (HappyWrap29 x)
 happyOut29 :: (HappyAbsSyn ) -> HappyWrap29
 happyOut29 x = Happy_GHC_Exts.unsafeCoerce# x
 {-# INLINE happyOut29 #-}
-newtype HappyWrap30 = HappyWrap30 (RelOp)
-happyIn30 :: (RelOp) -> (HappyAbsSyn )
+newtype HappyWrap30 = HappyWrap30 (CmpOp)
+happyIn30 :: (CmpOp) -> (HappyAbsSyn )
 happyIn30 x = Happy_GHC_Exts.unsafeCoerce# (HappyWrap30 x)
 {-# INLINE happyIn30 #-}
 happyOut30 :: (HappyAbsSyn ) -> HappyWrap30
@@ -225,7 +225,7 @@ happyExpList = HappyA# "\x00\x00\x00\x00\x00\x00\x8c\x04\x00\x00\x00\x00\x00\x00
 {-# NOINLINE happyExpListPerState #-}
 happyExpListPerState st =
     token_strs_expected
-  where token_strs = ["error","%dummy","%start_pProgram","Ident","Integer","Double","String","Program","Def","ListDef","Arg","ListArg","Blk","ListStm","Stm","Item","ListItem","Type","ListType","Exp6","Exp5","Exp4","Exp3","Exp2","Exp1","Exp","ListExp","AddOp","MulOp","RelOp","'!'","'!='","'%'","'&&'","'('","')'","'*'","'+'","'++'","','","'-'","'--'","'/'","';'","'<'","'<='","'='","'=='","'>'","'>='","'boolean'","'double'","'else'","'false'","'if'","'int'","'return'","'true'","'voIdent'","'while'","'{'","'||'","'}'","L_ident","L_integ","L_doubl","L_quoted","%eof"]
+  where token_strs = ["error","%dummy","%start_pProgram","Ident","Integer","Double","String","Program","Def","ListDef","Arg","ListArg","Blk","ListStm","Stm","Item","ListItem","Type","ListType","Exp6","Exp5","Exp4","Exp3","Exp2","Exp1","Exp","ListExp","AddOp","MulOp","CmpOp","'!'","'!='","'%'","'&&'","'('","')'","'*'","'+'","'++'","','","'-'","'--'","'/'","';'","'<'","'<='","'='","'=='","'>'","'>='","'boolean'","'double'","'else'","'false'","'if'","'int'","'return'","'true'","'void'","'while'","'{'","'||'","'}'","L_ident","L_integ","L_doubl","L_quoted","%eof"]
         bit_start = st * 68
         bit_end = (st + 1) * 68
         read_bit = readArrayBit happyExpList
@@ -615,7 +615,7 @@ happyReduction_32 happy_x_1
 happyReduce_33 = happySpecReduce_1  14# happyReduction_33
 happyReduction_33 happy_x_1
 	 =  happyIn18
-		 (Javalette.Abs.Doub
+		 (Javalette.Abs.Double
 	)
 
 happyReduce_34 = happySpecReduce_1  14# happyReduction_34
@@ -627,7 +627,7 @@ happyReduction_34 happy_x_1
 happyReduce_35 = happySpecReduce_1  14# happyReduction_35
 happyReduction_35 happy_x_1
 	 =  happyIn18
-		 (Javalette.Abs.VoIdent
+		 (Javalette.Abs.Void
 	)
 
 happyReduce_36 = happySpecReduce_0  15# happyReduction_36
@@ -780,7 +780,7 @@ happyReduction_54 happy_x_3
 	case happyOut30 happy_x_2 of { (HappyWrap30 happy_var_2) -> 
 	case happyOut23 happy_x_3 of { (HappyWrap23 happy_var_3) -> 
 	happyIn24
-		 (Javalette.Abs.ERel happy_var_1 happy_var_2 happy_var_3
+		 (Javalette.Abs.ECmp happy_var_1 happy_var_2 happy_var_3
 	)}}}
 
 happyReduce_55 = happySpecReduce_1  20# happyReduction_55

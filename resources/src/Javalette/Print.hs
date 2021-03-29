@@ -83,94 +83,94 @@ instance Print Ident where
 
 
 
-instance Print Prog where
+instance Print Program where
   prt i e = case e of
-    Program topdefs -> prPrec i 0 (concatD [prt 0 topdefs])
+    Pdefs defs -> prPrec i 0 (concatD [prt 0 defs])
 
-instance Print TopDef where
+instance Print Def where
   prt i e = case e of
-    FnDef type_ id args blk -> prPrec i 0 (concatD [prt 0 type_, prt 0 id, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 blk])
+    DFun type_ id args blk -> prPrec i 0 (concatD [prt 0 type_, prt 0 id, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 blk])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Arg where
   prt i e = case e of
-    Argument type_ id -> prPrec i 0 (concatD [prt 0 type_, prt 0 id])
+    ADecl type_ id -> prPrec i 0 (concatD [prt 0 type_, prt 0 id])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Blk where
   prt i e = case e of
-    Block stmts -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stmts, doc (showString "}")])
+    Block stms -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stms, doc (showString "}")])
 
-instance Print Stmt where
+instance Print Stm where
   prt i e = case e of
     Empty -> prPrec i 0 (concatD [doc (showString ";")])
-    BStmt blk -> prPrec i 0 (concatD [prt 0 blk])
-    Decl type_ items -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, doc (showString ";")])
-    Ass id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 expr, doc (showString ";")])
-    Incr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "++"), doc (showString ";")])
-    Decr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "--"), doc (showString ";")])
-    Ret expr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 expr, doc (showString ";")])
+    SBlock blk -> prPrec i 0 (concatD [prt 0 blk])
+    SDecls type_ items -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, doc (showString ";")])
+    SInit id exp -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 exp, doc (showString ";")])
+    SIncr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "++"), doc (showString ";")])
+    SDecr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "--"), doc (showString ";")])
+    SReturn exp -> prPrec i 0 (concatD [doc (showString "return"), prt 0 exp, doc (showString ";")])
     VRet -> prPrec i 0 (concatD [doc (showString "return"), doc (showString ";")])
-    Cond expr stmt -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
-    CondElse expr stmt1 stmt2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt1, doc (showString "else"), prt 0 stmt2])
-    While expr stmt -> prPrec i 0 (concatD [doc (showString "while"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 stmt])
-    SExp expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
+    SIf exp stm -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 exp, doc (showString ")"), prt 0 stm])
+    SIfElse exp stm1 stm2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 exp, doc (showString ")"), prt 0 stm1, doc (showString "else"), prt 0 stm2])
+    SWhile exp stm -> prPrec i 0 (concatD [doc (showString "while"), doc (showString "("), prt 0 exp, doc (showString ")"), prt 0 stm])
+    SExp exp -> prPrec i 0 (concatD [prt 0 exp, doc (showString ";")])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Item where
   prt i e = case e of
     NoInit id -> prPrec i 0 (concatD [prt 0 id])
-    Init id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 expr])
+    Init id exp -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 exp])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Type where
   prt i e = case e of
     Int -> prPrec i 0 (concatD [doc (showString "int")])
-    Doub -> prPrec i 0 (concatD [doc (showString "double")])
+    Double -> prPrec i 0 (concatD [doc (showString "double")])
     Bool -> prPrec i 0 (concatD [doc (showString "boolean")])
     Void -> prPrec i 0 (concatD [doc (showString "void")])
     Fun type_ types -> prPrec i 0 (concatD [prt 0 type_, doc (showString "("), prt 0 types, doc (showString ")")])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
-instance Print Expr where
+instance Print Exp where
   prt i e = case e of
     EVar id -> prPrec i 6 (concatD [prt 0 id])
-    ELitInt n -> prPrec i 6 (concatD [prt 0 n])
-    ELitDoub d -> prPrec i 6 (concatD [prt 0 d])
-    ELitTrue -> prPrec i 6 (concatD [doc (showString "true")])
-    ELitFalse -> prPrec i 6 (concatD [doc (showString "false")])
-    EApp id exprs -> prPrec i 6 (concatD [prt 0 id, doc (showString "("), prt 0 exprs, doc (showString ")")])
+    EInt n -> prPrec i 6 (concatD [prt 0 n])
+    EDouble d -> prPrec i 6 (concatD [prt 0 d])
+    ETrue -> prPrec i 6 (concatD [doc (showString "true")])
+    EFalse -> prPrec i 6 (concatD [doc (showString "false")])
+    EApp id exps -> prPrec i 6 (concatD [prt 0 id, doc (showString "("), prt 0 exps, doc (showString ")")])
     EString str -> prPrec i 6 (concatD [prt 0 str])
-    Neg expr -> prPrec i 5 (concatD [doc (showString "-"), prt 6 expr])
-    Not expr -> prPrec i 5 (concatD [doc (showString "!"), prt 6 expr])
-    EMul expr1 mulop expr2 -> prPrec i 4 (concatD [prt 4 expr1, prt 0 mulop, prt 5 expr2])
-    EAdd expr1 addop expr2 -> prPrec i 3 (concatD [prt 3 expr1, prt 0 addop, prt 4 expr2])
-    ERel expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
-    EAnd expr1 expr2 -> prPrec i 1 (concatD [prt 2 expr1, doc (showString "&&"), prt 1 expr2])
-    EOr expr1 expr2 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "||"), prt 0 expr2])
+    ENeg exp -> prPrec i 5 (concatD [doc (showString "-"), prt 6 exp])
+    ENot exp -> prPrec i 5 (concatD [doc (showString "!"), prt 6 exp])
+    EMul exp1 mulop exp2 -> prPrec i 4 (concatD [prt 4 exp1, prt 0 mulop, prt 5 exp2])
+    EAdd exp1 addop exp2 -> prPrec i 3 (concatD [prt 3 exp1, prt 0 addop, prt 4 exp2])
+    ECmp exp1 cmpop exp2 -> prPrec i 2 (concatD [prt 2 exp1, prt 0 cmpop, prt 3 exp2])
+    EAnd exp1 exp2 -> prPrec i 1 (concatD [prt 2 exp1, doc (showString "&&"), prt 1 exp2])
+    EOr exp1 exp2 -> prPrec i 0 (concatD [prt 1 exp1, doc (showString "||"), prt 0 exp2])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print AddOp where
   prt i e = case e of
-    Plus -> prPrec i 0 (concatD [doc (showString "+")])
-    Minus -> prPrec i 0 (concatD [doc (showString "-")])
+    OPlus -> prPrec i 0 (concatD [doc (showString "+")])
+    OMinus -> prPrec i 0 (concatD [doc (showString "-")])
 
 instance Print MulOp where
   prt i e = case e of
-    Times -> prPrec i 0 (concatD [doc (showString "*")])
-    Div -> prPrec i 0 (concatD [doc (showString "/")])
-    Mod -> prPrec i 0 (concatD [doc (showString "%")])
+    OTimes -> prPrec i 0 (concatD [doc (showString "*")])
+    ODiv -> prPrec i 0 (concatD [doc (showString "/")])
+    OMod -> prPrec i 0 (concatD [doc (showString "%")])
 
-instance Print RelOp where
+instance Print CmpOp where
   prt i e = case e of
-    LTH -> prPrec i 0 (concatD [doc (showString "<")])
-    LE -> prPrec i 0 (concatD [doc (showString "<=")])
-    GTH -> prPrec i 0 (concatD [doc (showString ">")])
-    GE -> prPrec i 0 (concatD [doc (showString ">=")])
-    EQU -> prPrec i 0 (concatD [doc (showString "==")])
-    NE -> prPrec i 0 (concatD [doc (showString "!=")])
+    OLt -> prPrec i 0 (concatD [doc (showString "<")])
+    OLtEq -> prPrec i 0 (concatD [doc (showString "<=")])
+    OGt -> prPrec i 0 (concatD [doc (showString ">")])
+    OGtEq -> prPrec i 0 (concatD [doc (showString ">=")])
+    OEq -> prPrec i 0 (concatD [doc (showString "==")])
+    ONeq -> prPrec i 0 (concatD [doc (showString "!=")])
 
 
