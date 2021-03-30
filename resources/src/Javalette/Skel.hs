@@ -17,19 +17,16 @@ transProgram x = case x of
   Pdefs defs -> failure x
 transDef :: Def -> Result
 transDef x = case x of
-  DFun type_ ident args blk -> failure x
+  DFun type_ ident args stms -> failure x
 transArg :: Arg -> Result
 transArg x = case x of
   ADecl type_ ident -> failure x
-transBlk :: Blk -> Result
-transBlk x = case x of
-  Block stms -> failure x
 transStm :: Stm -> Result
 transStm x = case x of
   Empty -> failure x
-  SBlock blk -> failure x
+  SBlock stms -> failure x
   SDecls type_ items -> failure x
-  SInit ident exp -> failure x
+  SAss ident exp -> failure x
   SIncr ident -> failure x
   SDecr ident -> failure x
   SReturn exp -> failure x
@@ -51,7 +48,7 @@ transType x = case x of
   Fun type_ types -> failure x
 transExp :: Exp -> Result
 transExp x = case x of
-  EVar ident -> failure x
+  EId ident -> failure x
   EInt integer -> failure x
   EDouble double -> failure x
   ETrue -> failure x
@@ -81,5 +78,5 @@ transCmpOp x = case x of
   OGt -> failure x
   OGtEq -> failure x
   OEq -> failure x
-  ONeq -> failure x
+  ONEq -> failure x
 

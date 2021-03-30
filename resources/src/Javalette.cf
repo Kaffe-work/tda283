@@ -4,7 +4,7 @@ entrypoints Program ;
 
 Pdefs.   Program ::= [Def] ;
 
-DFun.	           Def ::= Type Ident "(" [Arg] ")" Blk ;
+DFun.	           Def ::= Type Ident "(" [Arg] ")" "{" [Stm] "}" ;
 separator nonempty Def "" ;
 
 ADecl.     Arg ::= Type Ident;
@@ -12,11 +12,9 @@ separator  Arg "," ;
 
 -- statements ----------------------------------------------
 
-Block.     Blk ::= "{" [Stm] "}" ;
-
 separator  Stm "" ;
 Empty.     Stm ::= ";" ;
-SBlock.    Stm ::= Blk ;
+SBlock.    Stm ::= "{" [Stm] "}" ;
 SDecls.    Stm ::= Type [Item] ";" ;
 SAss.      Stm ::= Ident "=" Exp  ";" ;
 SIncr.     Stm ::= Ident "++"  ";" ;
@@ -45,7 +43,7 @@ separator  Type "," ;
 
 -- Expressions ---------------------------------------------
 
-EVar.      Exp6 ::= Ident ;
+EId.       Exp6 ::= Ident ;
 EInt.      Exp6 ::= Integer ;
 EDouble.   Exp6 ::= Double;
 ETrue.     Exp6 ::= "true" ;
@@ -82,7 +80,7 @@ OLtEq.      CmpOp ::= "<=" ;
 OGt.        CmpOp ::= ">" ;
 OGtEq.      CmpOp ::= ">=" ;
 OEq.        CmpOp ::= "==" ;
-ONeq.       CmpOp ::= "!=" ;
+ONEq.       CmpOp ::= "!=" ;
 
 -- comments ------------------------------------------------
 

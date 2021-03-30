@@ -43,8 +43,8 @@ The reserved words used in Javalette are the following:
   | ``void`` | ``while`` |  | 
 
 The symbols used in Javalette are the following:
-  | ( | ) | , | {
-  | } | ; | = | ++
+  | ( | ) | { | }
+  | , | ; | = | ++
   | -- | - | ! | &&
   | || | + | * | /
   | % | < | <= | >
@@ -60,18 +60,17 @@ and **eps** (empty rule) belong to the BNF notation.
 All other symbols are terminals.
 
   | //Program// | -> | //[Def]// 
-  | //Def// | -> | //Type// //Ident// ``(`` //[Arg]// ``)`` //Blk// 
+  | //Def// | -> | //Type// //Ident// ``(`` //[Arg]// ``)`` ``{`` //[Stm]// ``}`` 
   | //[Def]// | -> | //Def// 
   |  |  **|**  | //Def// //[Def]// 
   | //Arg// | -> | //Type// //Ident// 
   | //[Arg]// | -> | **eps**
   |  |  **|**  | //Arg// 
   |  |  **|**  | //Arg// ``,`` //[Arg]// 
-  | //Blk// | -> | ``{`` //[Stm]// ``}`` 
   | //[Stm]// | -> | **eps**
   |  |  **|**  | //Stm// //[Stm]// 
   | //Stm// | -> | ``;`` 
-  |  |  **|**  | //Blk// 
+  |  |  **|**  | ``{`` //[Stm]// ``}`` 
   |  |  **|**  | //Type// //[Item]// ``;`` 
   |  |  **|**  | //Ident// ``=`` //Exp// ``;`` 
   |  |  **|**  | //Ident// ``++`` ``;`` 

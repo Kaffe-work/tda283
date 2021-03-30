@@ -24,7 +24,7 @@ data Stm
     = Empty
     | SBlock Blk
     | SDecls Type [Item]
-    | SInit Ident Exp
+    | SAss Ident Exp
     | SIncr Ident
     | SDecr Ident
     | SReturn Exp
@@ -38,11 +38,11 @@ data Stm
 data Item = NoInit Ident | Init Ident Exp
   deriving (Eq, Ord, Show, Read)
 
-data Type = Int | Doub | Bool | VoIdent | Fun Type [Type]
+data Type = Int | Double | Bool | Void | Fun Type [Type]
   deriving (Eq, Ord, Show, Read)
 
 data Exp
-    = EVar Ident
+    = EId Ident
     | EInt Integer
     | EDouble Double
     | ETrue
@@ -64,6 +64,6 @@ data AddOp = OPlus | OMinus
 data MulOp = OTimes | ODiv | OMod
   deriving (Eq, Ord, Show, Read)
 
-data CmpOp = OLt | OLtEq | OGt | OGtEq | OEq | ONeq
+data CmpOp = OLt | OLtEq | OGt | OGtEq | OEq | ONEq
   deriving (Eq, Ord, Show, Read)
 

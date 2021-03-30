@@ -29,7 +29,7 @@ transStm x = case x of
   Empty -> failure x
   SBlock blk -> failure x
   SDecls type_ items -> failure x
-  SInit ident exp -> failure x
+  SAss ident exp -> failure x
   SIncr ident -> failure x
   SDecr ident -> failure x
   SReturn exp -> failure x
@@ -45,13 +45,13 @@ transItem x = case x of
 transType :: Type -> Result
 transType x = case x of
   Int -> failure x
-  Doub -> failure x
+  Double -> failure x
   Bool -> failure x
-  VoIdent -> failure x
+  Void -> failure x
   Fun type_ types -> failure x
 transExp :: Exp -> Result
 transExp x = case x of
-  EVar ident -> failure x
+  EId ident -> failure x
   EInt integer -> failure x
   EDouble double -> failure x
   ETrue -> failure x
@@ -81,5 +81,5 @@ transCmpOp x = case x of
   OGt -> failure x
   OGtEq -> failure x
   OEq -> failure x
-  ONeq -> failure x
+  ONEq -> failure x
 

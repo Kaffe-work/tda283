@@ -89,7 +89,7 @@ instance Print Program where
 
 instance Print Def where
   prt i e = case e of
-    DFun type_ id args blk -> prPrec i 0 (concatD [prt 0 type_, prt 0 id, doc (showString "("), prt 0 args, doc (showString ")"), prt 0 blk])
+    DFun type_ id args stms -> prPrec i 0 (concatD [prt 0 type_, prt 0 id, doc (showString "("), prt 0 args, doc (showString ")"), doc (showString "{"), prt 0 stms, doc (showString "}")])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print Arg where
@@ -98,16 +98,12 @@ instance Print Arg where
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
-instance Print Blk where
-  prt i e = case e of
-    Block stms -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stms, doc (showString "}")])
-
 instance Print Stm where
   prt i e = case e of
     Empty -> prPrec i 0 (concatD [doc (showString ";")])
-    SBlock blk -> prPrec i 0 (concatD [prt 0 blk])
+    SBlock stms -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stms, doc (showString "}")])
     SDecls type_ items -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, doc (showString ";")])
-    SInit id exp -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 exp, doc (showString ";")])
+    SAss id exp -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 exp, doc (showString ";")])
     SIncr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "++"), doc (showString ";")])
     SDecr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "--"), doc (showString ";")])
     SReturn exp -> prPrec i 0 (concatD [doc (showString "return"), prt 0 exp, doc (showString ";")])
@@ -136,7 +132,7 @@ instance Print Type where
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Exp where
   prt i e = case e of
-    EVar id -> prPrec i 6 (concatD [prt 0 id])
+    EId id -> prPrec i 6 (concatD [prt 0 id])
     EInt n -> prPrec i 6 (concatD [prt 0 n])
     EDouble d -> prPrec i 6 (concatD [prt 0 d])
     ETrue -> prPrec i 6 (concatD [doc (showString "true")])
@@ -171,6 +167,6 @@ instance Print CmpOp where
     OGt -> prPrec i 0 (concatD [doc (showString ">")])
     OGtEq -> prPrec i 0 (concatD [doc (showString ">=")])
     OEq -> prPrec i 0 (concatD [doc (showString "==")])
-    ONeq -> prPrec i 0 (concatD [doc (showString "!=")])
+    ONEq -> prPrec i 0 (concatD [doc (showString "!=")])
 
 

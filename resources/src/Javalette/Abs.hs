@@ -11,20 +11,17 @@ newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
 data Program = Pdefs [Def]
   deriving (Eq, Ord, Show, Read)
 
-data Def = DFun Type Ident [Arg] Blk
+data Def = DFun Type Ident [Arg] [Stm]
   deriving (Eq, Ord, Show, Read)
 
 data Arg = ADecl Type Ident
   deriving (Eq, Ord, Show, Read)
 
-data Blk = Block [Stm]
-  deriving (Eq, Ord, Show, Read)
-
 data Stm
     = Empty
-    | SBlock Blk
+    | SBlock [Stm]
     | SDecls Type [Item]
-    | SInit Ident Exp
+    | SAss Ident Exp
     | SIncr Ident
     | SDecr Ident
     | SReturn Exp
@@ -42,7 +39,7 @@ data Type = Int | Double | Bool | Void | Fun Type [Type]
   deriving (Eq, Ord, Show, Read)
 
 data Exp
-    = EVar Ident
+    = EId Ident
     | EInt Integer
     | EDouble Double
     | ETrue
@@ -64,6 +61,6 @@ data AddOp = OPlus | OMinus
 data MulOp = OTimes | ODiv | OMod
   deriving (Eq, Ord, Show, Read)
 
-data CmpOp = OLt | OLtEq | OGt | OGtEq | OEq | ONeq
+data CmpOp = OLt | OLtEq | OGt | OGtEq | OEq | ONEq
   deriving (Eq, Ord, Show, Read)
 

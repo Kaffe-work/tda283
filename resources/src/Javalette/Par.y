@@ -63,7 +63,7 @@ String  :: { String }  : L_quoted {  $1 }
 Program :: { Program }
 Program : ListDef { Javalette.Abs.Pdefs $1 }
 Def :: { Def }
-Def : Type Ident '(' ListArg ')' Blk { Javalette.Abs.DFun $1 $2 $4 $6 }
+Def : Type Ident '(' ListArg ')' '{' ListStm '}' { Javalette.Abs.DFun $1 $2 $4 (reverse $7) }
 ListDef :: { [Def] }
 ListDef : Def { (:[]) $1 } | Def ListDef { (:) $1 $2 }
 Arg :: { Arg }
@@ -72,15 +72,13 @@ ListArg :: { [Arg] }
 ListArg : {- empty -} { [] }
         | Arg { (:[]) $1 }
         | Arg ',' ListArg { (:) $1 $3 }
-Blk :: { Blk }
-Blk : '{' ListStm '}' { Javalette.Abs.Block (reverse $2) }
 ListStm :: { [Stm] }
 ListStm : {- empty -} { [] } | ListStm Stm { flip (:) $1 $2 }
 Stm :: { Stm }
 Stm : ';' { Javalette.Abs.Empty }
-    | Blk { Javalette.Abs.SBlock $1 }
+    | '{' ListStm '}' { Javalette.Abs.SBlock (reverse $2) }
     | Type ListItem ';' { Javalette.Abs.SDecls $1 $2 }
-    | Ident '=' Exp ';' { Javalette.Abs.SInit $1 $3 }
+    | Ident '=' Exp ';' { Javalette.Abs.SAss $1 $3 }
     | Ident '++' ';' { Javalette.Abs.SIncr $1 }
     | Ident '--' ';' { Javalette.Abs.SDecr $1 }
     | 'return' Exp ';' { Javalette.Abs.SReturn $2 }
@@ -104,7 +102,7 @@ ListType : {- empty -} { [] }
          | Type { (:[]) $1 }
          | Type ',' ListType { (:) $1 $3 }
 Exp6 :: { Exp }
-Exp6 : Ident { Javalette.Abs.EVar $1 }
+Exp6 : Ident { Javalette.Abs.EId $1 }
      | Integer { Javalette.Abs.EInt $1 }
      | Double { Javalette.Abs.EDouble $1 }
      | 'true' { Javalette.Abs.ETrue }
@@ -145,7 +143,7 @@ CmpOp : '<' { Javalette.Abs.OLt }
       | '>' { Javalette.Abs.OGt }
       | '>=' { Javalette.Abs.OGtEq }
       | '==' { Javalette.Abs.OEq }
-      | '!=' { Javalette.Abs.ONeq }
+      | '!=' { Javalette.Abs.ONEq }
 {
 
 returnM :: a -> Err a
