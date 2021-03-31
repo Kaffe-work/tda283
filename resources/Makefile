@@ -1,6 +1,6 @@
 # Makefile for happiness 
 ############################################################################ Files of solution.  Add more files as needed.  'jlc.hs'  has to be first!
-files=src/jlc.hs src/Javalette.cf Makefile src/TypeChecker.hs
+files=src/jlc.hs src/Javalette.cf Makefile src/Typechecker.hs
 part=A
 resubmission=1
 tarfile = part$(part)-$(resubmission).tar.gz
@@ -35,7 +35,7 @@ $(tarfile) : src/ lib/ doc/ Makefile
 #################################
 ############ Rule for testing the 
 test: $(tarfile)
-	cd tester && python testing.py ../$^
+	 cd tester && python3 testing.py ../$^
 ###############################################
 ############ Rule for cleaning generated files:
 clean :

@@ -49,16 +49,18 @@ createSymbolTable env ((DFun retType i args stms):ds) = do
         getArgType (ADecl t i) = t
 
 checkEqualTypes :: Env -> [Type] -> [Exp] -> Err (Bool,[Exp])
-checkEqualTypes env [] [] = (True, [])
-checkEqualTypes env (t:_) [] = (False, [])
-checkEqualTypes env [] (e:_) = (False, [])
+checkEqualTypes env [] [] = Ok (True, [])
+checkEqualTypes env (t:_) [] = Ok (False, [])
+checkEqualTypes env [] (e:_) = Ok (False, [])
 checkEqualTypes env (typ:typs) (exp:exps) = do
     case checkExpType env exp of
         Ok (exptyp,exp2) -> do
-            let (b,aexps) = checkEqualTypes env typs exps
-            case typecast exptyp typ exp2 of
-                Ok exp -> (b, exp:aexps)
-                _ -> fail "Not equal types"
+            case checkEqualTypes env typs exps of
+                Ok (b, aexps) -> do
+                    case typecast exptyp typ exp2 of
+                        Ok exp -> Ok (b, exp:aexps)
+                        _ -> fail "Not equal types"
+                Bad str -> fail str
         _ -> Ok (False,[])
     where 
         typecast t1 t2 ex = if t1 /= t2 then fail "Type bad" else Ok ex
