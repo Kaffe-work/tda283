@@ -25,7 +25,7 @@ data Stm
     | SIncr Ident
     | SDecr Ident
     | SReturn Exp
-    | VRet
+    | SNoReturn
     | SIf Exp Stm
     | SIfElse Exp Stm Stm
     | SWhile Exp Stm

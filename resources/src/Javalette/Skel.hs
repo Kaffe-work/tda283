@@ -30,7 +30,7 @@ transStm x = case x of
   SIncr ident -> failure x
   SDecr ident -> failure x
   SReturn exp -> failure x
-  VRet -> failure x
+  SNoReturn -> failure x
   SIf exp stm -> failure x
   SIfElse exp stm1 stm2 -> failure x
   SWhile exp stm -> failure x

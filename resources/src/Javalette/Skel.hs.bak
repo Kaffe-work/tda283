@@ -17,17 +17,14 @@ transProgram x = case x of
   Pdefs defs -> failure x
 transDef :: Def -> Result
 transDef x = case x of
-  DFun type_ ident args blk -> failure x
+  DFun type_ ident args stms -> failure x
 transArg :: Arg -> Result
 transArg x = case x of
   ADecl type_ ident -> failure x
-transBlk :: Blk -> Result
-transBlk x = case x of
-  Block stms -> failure x
 transStm :: Stm -> Result
 transStm x = case x of
   Empty -> failure x
-  SBlock blk -> failure x
+  SBlock stms -> failure x
   SDecls type_ items -> failure x
   SAss ident exp -> failure x
   SIncr ident -> failure x

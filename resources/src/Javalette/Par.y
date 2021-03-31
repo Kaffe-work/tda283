@@ -82,7 +82,7 @@ Stm : ';' { Javalette.Abs.Empty }
     | Ident '++' ';' { Javalette.Abs.SIncr $1 }
     | Ident '--' ';' { Javalette.Abs.SDecr $1 }
     | 'return' Exp ';' { Javalette.Abs.SReturn $2 }
-    | 'return' ';' { Javalette.Abs.VRet }
+    | 'return' ';' { Javalette.Abs.SNoReturn }
     | 'if' '(' Exp ')' Stm { Javalette.Abs.SIf $3 $5 }
     | 'if' '(' Exp ')' Stm 'else' Stm { Javalette.Abs.SIfElse $3 $5 $7 }
     | 'while' '(' Exp ')' Stm { Javalette.Abs.SWhile $3 $5 }

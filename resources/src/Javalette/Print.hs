@@ -107,7 +107,7 @@ instance Print Stm where
     SIncr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "++"), doc (showString ";")])
     SDecr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "--"), doc (showString ";")])
     SReturn exp -> prPrec i 0 (concatD [doc (showString "return"), prt 0 exp, doc (showString ";")])
-    VRet -> prPrec i 0 (concatD [doc (showString "return"), doc (showString ";")])
+    SNoReturn -> prPrec i 0 (concatD [doc (showString "return"), doc (showString ";")])
     SIf exp stm -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 exp, doc (showString ")"), prt 0 stm])
     SIfElse exp stm1 stm2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 exp, doc (showString ")"), prt 0 stm1, doc (showString "else"), prt 0 stm2])
     SWhile exp stm -> prPrec i 0 (concatD [doc (showString "while"), doc (showString "("), prt 0 exp, doc (showString ")"), prt 0 stm])

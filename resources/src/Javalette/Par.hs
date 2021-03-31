@@ -506,7 +506,7 @@ happyReduce_22 = happySpecReduce_2  10# happyReduction_22
 happyReduction_22 happy_x_2
 	happy_x_1
 	 =  happyIn14
-		 (Javalette.Abs.VRet
+		 (Javalette.Abs.SNoReturn
 	)
 
 happyReduce_23 = happyReduce 5# 10# happyReduction_23

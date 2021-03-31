@@ -20,7 +20,7 @@ check prog = do
                     hPutStrLn stderr "type error"
                     hPutStrLn stderr string
                     exitFailure
-                Ok _ -> hPutStrLn stderr "ok"    
+                Ok _ -> hPutStrLn stderr "OK"    
 check _ = hPutStrLn stderr "bad program"
 
 

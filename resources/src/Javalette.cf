@@ -20,7 +20,7 @@ SAss.      Stm ::= Ident "=" Exp  ";" ;
 SIncr.     Stm ::= Ident "++"  ";" ;
 SDecr.     Stm ::= Ident "--"  ";" ;
 SReturn.   Stm ::= "return" Exp ";" ;
-VRet.      Stm ::= "return" ";" ;
+SNoReturn. Stm ::= "return" ";" ;
 SIf.       Stm ::= "if" "(" Exp ")" Stm  ;
 SIfElse.   Stm ::= "if" "(" Exp ")" Stm "else" Stm  ;
 SWhile.    Stm ::= "while" "(" Exp ")" Stm ;
