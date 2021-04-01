@@ -13,7 +13,7 @@ separator  Arg "," ;
 -- statements ----------------------------------------------
 
 separator  Stm "" ;
-Empty.     Stm ::= ";" ;
+SEmpty.    Stm ::= ";" ;
 SBlock.    Stm ::= "{" [Stm] "}" ;
 SDecls.    Stm ::= Type [Item] ";" ;
 SAss.      Stm ::= Ident "=" Exp  ";" ;

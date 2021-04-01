@@ -23,7 +23,7 @@ transArg x = case x of
   ADecl type_ ident -> failure x
 transStm :: Stm -> Result
 transStm x = case x of
-  Empty -> failure x
+  SEmpty -> failure x
   SBlock stms -> failure x
   SDecls type_ items -> failure x
   SAss ident exp -> failure x

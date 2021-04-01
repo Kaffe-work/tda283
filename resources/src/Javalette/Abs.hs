@@ -18,7 +18,7 @@ data Arg = ADecl Type Ident
   deriving (Eq, Ord, Show, Read)
 
 data Stm
-    = Empty
+    = SEmpty
     | SBlock [Stm]
     | SDecls Type [Item]
     | SAss Ident Exp

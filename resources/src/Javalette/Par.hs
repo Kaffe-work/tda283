@@ -441,7 +441,7 @@ happyReduction_14 happy_x_2
 happyReduce_15 = happySpecReduce_1  10# happyReduction_15
 happyReduction_15 happy_x_1
 	 =  happyIn14
-		 (Javalette.Abs.Empty
+		 (Javalette.Abs.SEmpty
 	)
 
 happyReduce_16 = happySpecReduce_3  10# happyReduction_16

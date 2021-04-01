@@ -100,7 +100,7 @@ instance Print Arg where
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Stm where
   prt i e = case e of
-    Empty -> prPrec i 0 (concatD [doc (showString ";")])
+    SEmpty -> prPrec i 0 (concatD [doc (showString ";")])
     SBlock stms -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stms, doc (showString "}")])
     SDecls type_ items -> prPrec i 0 (concatD [prt 0 type_, prt 0 items, doc (showString ";")])
     SAss id exp -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 exp, doc (showString ";")])

@@ -66,6 +66,15 @@ checkEqualTypes env (typ:typs) (exp:exps) = do
     where 
         typecast t1 t2 ex = if t1 /= t2 then fail "Type bad" else Ok ex
 
+returns :: Stm ->  Bool
+returns (SIf _ s)          = returns s
+returns (SIfElse _ s1 s2)  = returns s1 && returns s2
+returns (SBlock  ss)  = (not . null) ss && returns (last ss)
+returns (SReturn _)             = True
+returns (SNoReturn)              = True
+returns _                   = False
+
+
 -- Double and int, are interchangeable
 checkEqualType :: Type -> Type -> Err Type
 checkEqualType t1 t2 = if t1 == t2 
@@ -140,10 +149,12 @@ checkDefs env (d:ds) = do
 
 checkDef :: Env -> Def -> Err (Env, Def)
 checkDef env (DFun retType i args stms) = do
-    env <- foldM addArg (enterScope env) args
-    (env', stms') <- checkStms retType env stms 
-    env'' <- leaveScope (Ok env')
-    return (env'', DFun retType i args stms')
+    env1 <- foldM addArg (enterScope env) args
+    (env2, stms') <- checkStms retType env1 stms 
+    env3 <- leaveScope (Ok env2)
+    let retFunc = (not . null) stms' && returns (last stms')
+    if retFunc then return (env3, DFun retType i args stms')
+    else fail "fuck this shit"
     where
         addArg env (ADecl t i) = addVar t i env
 
@@ -196,12 +207,23 @@ checkStm r env (SReturn e) = do
 
 checkStm styp env SNoReturn = Ok (env, SNoReturn)
 
-checkstm r env (SIf e ifs) = do
+checkStm r env (SIf e ifs) = do
     (t',e') <- checkExpType env e
-    if t' == bool
-        then do
-            --todo
-        else fail "invalid expression type in if statement"
+    --if t' == Bool 
+    case e' of 
+        ETrue -> do 
+            s' <- checkStm r (enterScope env) ifs
+            return s'
+        EFalse -> Ok (env, SIf e' ifs)
+        _ -> do 
+            (t',e') <- checkExpType env e
+            (t'', s') <- checkStm r (enterScope env) ifs
+            return (env, SIf e' s')
+        --then do
+        --    (env2,ifs') <- checkStm r (enterScope env) ifs 
+        --    env3 <- leaveScope $ Ok env2
+        --    return (env, SIf e' ifs')
+    --else fail "invalid expression type in if statement"
 
 checkStm r env (SIfElse e ifs elses) = do
     (t',e') <- checkExpType env e
@@ -226,6 +248,8 @@ checkStm r env (SWhile e s) = do
 checkStm _ env (SExp e) = do
     (t',e') <- checkExpType env e
     return (env, SExp  e')
+
+checkStm _ _ _ = fail "Statement does not exist"
 
 
 addItem :: Env -> Type -> Item -> Err Env
@@ -312,6 +336,8 @@ checkExpType env (EAnd e1 e2) = do
 checkExpType env (EOr e1 e2) = do
     (t', (e1',e2')) <- checkOprtype e1 e2 env
     if t' == Bool then return (Bool, EOr e1' e2') else fail "Bool required for Or operator"
+
+checkExpType _ _ = fail "Expression does not exist"
 
 enterScope :: Env -> Env
 enterScope (Env sig cs) = Env sig (Map.empty:cs)

@@ -75,7 +75,7 @@ ListArg : {- empty -} { [] }
 ListStm :: { [Stm] }
 ListStm : {- empty -} { [] } | ListStm Stm { flip (:) $1 $2 }
 Stm :: { Stm }
-Stm : ';' { Javalette.Abs.Empty }
+Stm : ';' { Javalette.Abs.SEmpty }
     | '{' ListStm '}' { Javalette.Abs.SBlock (reverse $2) }
     | Type ListItem ';' { Javalette.Abs.SDecls $1 $2 }
     | Ident '=' Exp ';' { Javalette.Abs.SAss $1 $3 }
