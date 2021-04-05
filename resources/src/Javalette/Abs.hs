@@ -8,7 +8,7 @@ module Javalette.Abs where
 
 
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
-data Program = Pdefs [Def]
+data Program = PDefs [Def]
   deriving (Eq, Ord, Show, Read)
 
 data Def = DFun Type Ident [Arg] [Stm]

@@ -85,7 +85,7 @@ instance Print Ident where
 
 instance Print Program where
   prt i e = case e of
-    Pdefs defs -> prPrec i 0 (concatD [prt 0 defs])
+    PDefs defs -> prPrec i 0 (concatD [prt 0 defs])
 
 instance Print Def where
   prt i e = case e of

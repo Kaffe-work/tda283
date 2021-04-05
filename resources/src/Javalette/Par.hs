@@ -356,7 +356,7 @@ happyReduce_5 = happySpecReduce_1  4# happyReduction_5
 happyReduction_5 happy_x_1
 	 =  case happyOut10 happy_x_1 of { (HappyWrap10 happy_var_1) -> 
 	happyIn8
-		 (Javalette.Abs.Pdefs happy_var_1
+		 (Javalette.Abs.PDefs happy_var_1
 	)}
 
 happyReduce_6 = happyReduce 8# 5# happyReduction_6

@@ -2,7 +2,7 @@
 
 entrypoints Program ;
 
-Pdefs.   Program ::= [Def] ;
+PDefs.   Program ::= [Def] ;
 
 DFun.	           Def ::= Type Ident "(" [Arg] ")" "{" [Stm] "}" ;
 separator nonempty Def "" ;

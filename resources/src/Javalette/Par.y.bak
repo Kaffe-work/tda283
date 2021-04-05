@@ -84,7 +84,7 @@ Stm : ';' { Javalette.Abs.SEmpty }
     | 'return' Exp ';' { Javalette.Abs.SReturn $2 }
     | 'return' ';' { Javalette.Abs.SNoReturn }
     | 'if' '(' Exp ')' Stm { Javalette.Abs.SIf $3 $5 }
-    | 'if' '(' Exp ')' Stm 'else' Stm { Javalette.Abs.SElseIf $3 $5 $7 }
+    | 'if' '(' Exp ')' Stm 'else' Stm { Javalette.Abs.SIfElse $3 $5 $7 }
     | 'while' '(' Exp ')' Stm { Javalette.Abs.SWhile $3 $5 }
     | Exp ';' { Javalette.Abs.SExp $1 }
 Item :: { Item }

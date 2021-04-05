@@ -61,7 +61,7 @@ Double  :: { Double }  : L_doubl  { (read ( $1)) :: Double }
 String  :: { String }  : L_quoted {  $1 }
 
 Program :: { Program }
-Program : ListDef { Javalette.Abs.Pdefs $1 }
+Program : ListDef { Javalette.Abs.PDefs $1 }
 Def :: { Def }
 Def : Type Ident '(' ListArg ')' '{' ListStm '}' { Javalette.Abs.DFun $1 $2 $4 (reverse $7) }
 ListDef :: { [Def] }

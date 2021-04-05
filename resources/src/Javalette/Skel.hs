@@ -14,7 +14,7 @@ transIdent x = case x of
   Ident string -> failure x
 transProgram :: Program -> Result
 transProgram x = case x of
-  Pdefs defs -> failure x
+  PDefs defs -> failure x
 transDef :: Def -> Result
 transDef x = case x of
   DFun type_ ident args stms -> failure x

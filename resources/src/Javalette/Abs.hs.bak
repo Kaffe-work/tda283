@@ -27,7 +27,7 @@ data Stm
     | SReturn Exp
     | SNoReturn
     | SIf Exp Stm
-    | SElseIf Exp Stm Stm
+    | SIfElse Exp Stm Stm
     | SWhile Exp Stm
     | SExp Exp
   deriving (Eq, Ord, Show, Read)
