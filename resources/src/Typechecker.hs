@@ -22,7 +22,54 @@ typecheck (PDefs defs) = do
     env2 <- collectFcnSymbls env1 defs
     case lookupFun env2 (Ident "main") of
         Bad str -> Bad str
-        _ -> checkDefs env2 defs    
+        _ -> case checkDefs env2 defs of
+            Bad str -> Bad str
+            _ -> checkReturns env2 defs
+
+
+checkReturns :: Env -> [Def] -> Err ()
+checkReturns _ [] = Ok ()
+checkReturns env (def:defs) = do
+    let (DFun typ _ _ stms) = def
+    checkReturn env typ stms
+    checkReturns env defs
+    
+checkReturn :: Env -> Type -> [Stm] -> Err ()
+checkReturn _ Void [] = Ok ()
+checkReturn _ _ [] = Bad "Functions must have a return statement"
+checkReturn env typ (stm:stms) = case stm of 
+    SIf exp stm1 -> case exp of 
+        ETrue -> case checkReturn env typ [stm1] of 
+            Bad str -> Bad str
+            _ -> checkReturn env typ stms
+        _ -> checkReturn env typ stms
+
+    SIfElse exp stm1 stm2 -> case exp of
+        ETrue -> case checkReturn env typ [stm1] of 
+            Bad str -> Bad str
+            _ -> checkReturn env typ stms
+        EFalse -> case checkReturn env typ [stm2] of 
+            Bad str -> Bad str
+            _ -> checkReturn env typ stms
+        _ -> checkReturn env typ stms
+
+    SWhile exp stm1 -> case exp of 
+        ETrue -> case checkReturn env typ [stm1] of 
+            Bad str -> Bad str
+            _ -> checkReturn env typ stms 
+        _ -> checkReturn env typ stms 
+
+    SNoReturn -> case typ of
+        Void -> Ok ()
+        _ -> Bad "Function with non-void type must return a value"
+
+    SReturn stm1 -> Ok ()
+        
+    SBlock stms1 -> case checkReturn env typ stms1 of
+        Bad str -> Bad str
+        _ -> checkReturn env typ stms
+    
+    _ -> checkReturn env typ stms
 
 addPreDefFun :: Env -> Env
 addPreDefFun (sig, cxts) = do 
@@ -49,7 +96,6 @@ collectFcnSymbls env (DFun typ id args _:defs) = do
         else do
             env' <- updateFun env id (listOfArgTypes, typ)
             collectFcnSymbls env' defs
-
 
 collectTypeFrmArg :: Arg -> Type
 collectTypeFrmArg (ADecl typ _) = typ
