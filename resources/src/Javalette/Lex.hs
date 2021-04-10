@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds -fno-warn-missing-signatures #-}
 {-# LANGUAGE CPP,MagicHash #-}
-{-# LINE 3 "src/Javalette/Lex.x" #-}
+{-# LINE 3 "Javalette/Lex.x" #-}
 
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 {-# OPTIONS_GHC -w #-}
@@ -109,7 +109,7 @@ alex_actions = array (0 :: Int, 10)
   , (0,alex_action_8)
   ]
 
-{-# LINE 40 "src/Javalette/Lex.x" #-}
+{-# LINE 40 "Javalette/Lex.x" #-}
 
 
 tok :: (Posn -> String -> Token) -> (Posn -> String -> Token)

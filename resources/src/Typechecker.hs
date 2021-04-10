@@ -40,23 +40,27 @@ checkReturn _ _ [] = Bad "Functions must have a return statement"
 checkReturn env typ (stm:stms) = case stm of 
     SIf exp stm1 -> case exp of 
         ETrue -> case checkReturn env typ [stm1] of 
-            Bad str -> Bad str
-            _ -> checkReturn env typ stms
+            Bad str -> checkReturn env typ stms
+            _ -> Ok ()
         _ -> checkReturn env typ stms
 
     SIfElse exp stm1 stm2 -> case exp of
         ETrue -> case checkReturn env typ [stm1] of 
-            Bad str -> Bad str
-            _ -> checkReturn env typ stms
+            Bad str -> checkReturn env typ stms
+            _ -> Ok ()
         EFalse -> case checkReturn env typ [stm2] of 
-            Bad str -> Bad str
-            _ -> checkReturn env typ stms
-        _ -> checkReturn env typ stms
+            Bad str -> checkReturn env typ stms
+            _ -> Ok ()
+        _ -> case checkReturn env typ [stm1] of
+            Bad str -> checkReturn env typ stms
+            _ -> case checkReturn env typ [stm2] of
+                Bad str -> checkReturn env typ stms
+                _ -> Ok ()
 
     SWhile exp stm1 -> case exp of 
         ETrue -> case checkReturn env typ [stm1] of 
-            Bad str -> Bad str
-            _ -> checkReturn env typ stms 
+            Bad str -> checkReturn env typ stms
+            _ ->  Ok ()
         _ -> checkReturn env typ stms 
 
     SNoReturn -> case typ of
@@ -66,10 +70,11 @@ checkReturn env typ (stm:stms) = case stm of
     SReturn stm1 -> Ok ()
         
     SBlock stms1 -> case checkReturn env typ stms1 of
-        Bad str -> Bad str
-        _ -> checkReturn env typ stms
+        Bad str -> checkReturn env typ stms
+        _ -> Ok ()
     
     _ -> checkReturn env typ stms
+
 
 addPreDefFun :: Env -> Env
 addPreDefFun (sig, cxts) = do 
@@ -175,16 +180,16 @@ checkAssExp env varTyp exp = do
     case varTyp of
         Double -> do
             expType <- inferExp env exp
-            if expType `elem` [Double, Int] then
+            if expType == Double then
                 return varTyp
             else
-                Bad $ "checkAssExp: Expected int or double but got " ++ printTree expType
+                Bad $ "checkAssExp: Expected double but got " ++ printTree expType
         Int -> do
             expType <- inferExp env exp
             if expType == Int then
                 return varTyp
             else
-               Bad $ "checkAssExp: Expected int or double but got " ++ printTree expType
+               Bad $ "checkAssExp: Expected int but got " ++ printTree expType
         Bool -> do
             expType <- inferExp env exp
             if expType == Bool then
@@ -228,7 +233,10 @@ checkStm env typ stm = case stm of
     SReturn exp -> do
         checkExp env typ exp
         return env
-    SNoReturn -> Ok env
+    SNoReturn -> do 
+        case typ of
+            Void -> Ok env
+            _ -> Bad "Non-void functions must return a value"
     SIf exp stm1 -> do
         checkExp env Bool exp
         let env1 = newBlock env
@@ -282,6 +290,7 @@ inferExp env ex = case ex of
     EString _   -> Ok Int
     ENeg exp    -> inferNeg env exp
     ENot exp    -> inferNot env exp
+    EMul exp1 OMod exp2 -> inferMod env exp1 exp2
     EMul exp1 _ exp2    -> inferBin env exp1 exp2
     EAdd exp1 _ exp2    -> inferBin env exp1 exp2
     ECmp exp1 OLt exp2      -> inferCmp env exp1 exp2
@@ -304,33 +313,40 @@ inferNot env exp = case inferExp env exp of
     Ok Bool -> Ok Bool
     _ -> Bad "Non-boolean variables do not have a 'not' value associated to them"
 
+inferMod :: Env -> Exp -> Exp -> Err Type
+inferMod env exp1 exp2 = do
+    case inferExp env exp1 of
+        Ok Int -> do 
+            case inferExp env exp2 of
+                Ok Int -> Ok Int
+                _ -> Bad "Only Int can be used in modulo operator"
+        _ -> Bad "Only Int can be used in modulo operator"
+
 inferBin :: Env -> Exp -> Exp -> Err Type
 inferBin env exp1 exp2 = do
-    typ <- inferExp env exp1
-    case typ of
-        Double -> do
-            typ2 <- inferExp env exp2
-            case typ2 of
-                Int    -> Ok Double
-                Double -> Ok Double
-                _           -> Bad "inferBin: can only use arithmetic binary operators on numbers"
-        Int -> do
-            typ2 <- inferExp env exp2
-            case typ2 of
-                Int    -> Ok Int
-                Double -> Ok Double
-                _           -> Bad "inferBin: can only use arithmetic binary operators on numbers"
+    case inferExp env exp1 of
+        Ok Double -> do
+            case inferExp env exp2 of
+                Ok Double -> Ok Double
+                _ -> Bad "inferBin: can only use arithmetic binary operators on numbers"
+        Ok Int -> do
+            case inferExp env exp2 of
+                Ok Int -> Ok Int
+                _ -> Bad "inferBin: can only use arithmetic binary operators on numbers"
         _ -> Bad $ "wrong type of expression" ++ printTree exp1
 
 inferCmp :: Env -> Exp -> Exp -> Err Type
 inferCmp env exp1 exp2 = do
-    if inferExp env exp1 `elem` [Ok Int, Ok Double] then do
-        if inferExp env exp2 `elem` [Ok Int, Ok Double] then 
-            Ok Bool
-        else
-            Bad "inferCmp: Can only compare numbers"
-    else
-        Bad "inferCmp: Can only compare numbers"
+    case inferExp env exp1 of
+        Ok Int -> do
+            case inferExp env exp2 of
+                Ok Int -> Ok Bool
+                _ -> Bad "inferCmp: Can only compare Int with Int"
+        Ok Double -> do
+            case inferExp env exp2 of
+                Ok Double -> Ok Bool
+                _ -> Bad "inferCmp: can only compare double with double "
+        _ -> Bad "inferCmp: Can only compare numbers"
 
 inferEq :: Env -> Exp -> Exp -> Err Type
 inferEq env exp1 exp2 = do
@@ -340,22 +356,12 @@ inferEq env exp1 exp2 = do
                 Ok Bool -> Ok Bool
                 Ok _ -> Bad "inferEq: Cannot check equality of boolean and non-boolean"
         Ok Int -> do
-            if inferExp env exp2 `elem` [Ok Int, Ok Double] then
-                Ok Bool
+            if inferExp env exp2 == Ok Int then Ok Bool
             else Bad "inferEq: Cannot check equality of different types"
         Ok Double -> do
-            if inferExp env exp2 `elem` [Ok Int, Ok Double] then
-                Ok Bool
+            if inferExp env exp2 == Ok Double then Ok Bool
             else Bad "inferEq: Cannot check equality of different types"
         _ -> Bad "inferEq: Can only check equality of int, double and bool"
-
-inferIncDec :: [Type] -> Env -> Ident -> Err Type
-inferIncDec types env id = do
-    typ <- lookupVar env id
-    if typ `elem` types then
-        Ok typ
-    else
-        Bad "Increment/Decrement can only be applied to Ints and Doubles"
 
 inferLogic :: Env -> Exp -> Exp -> Err Type
 inferLogic env exp1 exp2 = do

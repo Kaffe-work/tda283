@@ -19,7 +19,7 @@ check prog = do
         Ok tree -> do
             case typecheck tree of
                 Bad string -> do
-                    hPutStrLn stderr string--"ERROR"
+                    hPutStrLn stderr "ERROR"
                     exitFailure
                 Ok _ -> hPutStrLn stderr "OK"    
 check _ = hPutStrLn stderr "bad program"
