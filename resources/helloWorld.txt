@@ -1,6 +1,0 @@
-// Hello world program
-
-int main () {
-  printString("Hello world!") ;
-  return 0 ;
-}

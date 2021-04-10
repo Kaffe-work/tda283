@@ -1,0 +1,6 @@
+Please refer to the Javalette.cf file for the language specification.
+
+There is one standard dangling-else shift/reduce conflict which has been there since the original fork.
+
+'Make all' creates a jlc executable and 'make clean' removes build artefacts. 
+'make test' is a make command used during development and utilizes our specific file structure, it is not expected to work elsewhere.

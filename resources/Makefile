@@ -2,7 +2,7 @@
 ############################################################################ Files of solution.  Add more files as needed.  'jlc.hs'  has to be first!
 files=src/jlc.hs src/Javalette.cf Makefile src/Typechecker.hs
 part=A
-resubmission=1
+resubmission=2
 tarfile = part$(part)-$(resubmission).tar.gz
 ############################################################################ List of goals not corresponding to file names.
 .PHONY : all tar test clean
