@@ -267,8 +267,11 @@ checkStm env typ stm = case stm of
                 return (sig, cxts)
             Bad string -> Bad string
     SExp exp -> do
-        inferExp env exp
-        return env
+        typ <- inferExp env exp
+        case typ of
+            Void -> return env
+            _ -> Bad "Void expressions must have void function call"
+        
 
 addItem :: Env -> Type -> Item -> Err Env
 addItem env typ (NoInit id) = do
