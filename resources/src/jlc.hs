@@ -5,7 +5,7 @@ import Javalette.Par (myLexer, pProgram)
 import System.Environment (getArgs)
 import System.Exit        (exitFailure)
 import System.IO.Error    (isUserError, ioeGetErrorString)
-import TypeChecker
+import Typechecker
 import Javalette.ErrM
 import System.IO
 import Javalette.Abs

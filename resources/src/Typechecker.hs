@@ -1,4 +1,4 @@
-module TypeChecker where
+module Typechecker where
 
 import Control.Monad
 
