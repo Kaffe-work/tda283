@@ -18,24 +18,17 @@ newtype Label = L { theLabel :: Int }
     deriving (Eq, Enum, Show)
 
 data Code
-    = Store Type Addr
+    = Alloca Type
+    | Store Type Val Addr 
     | Load  Type Addr
-    | IConst Integer
-    | DConst Double
-    | Dup Type
-    | Pop Type
-    | Return Type
-    | Call Fun
-    | Label Label
-    | Goto Label
-    | If CmpOp Label
-    | IfCmp Type CmpOp Label
-    | DCmp
-    | Inc Type Addr Int
-    | Add Type AddOp
-    | Mult Type MulOp
-    | I2D
-    | Comment String
+    | Call
+    | Label
+    | Ret
+    | Branch
+    | Cmp
+    | Arith
+    | Neg
+    | Not 
     
     deriving (Show)
 
@@ -62,10 +55,11 @@ flipCmp cmpOp = case cmpOp of
 
 prefix :: Type -> String
 prefix typ = case typ of
-    Int -> "i"
-    Double -> "d"
-    Bool -> "i"
-    Void -> ""
+    Int -> "i32"
+    Double -> "f64" "double"
+    Bool -> "i1"
+    Void -> "void"
+    String -> "i8*"
 
 isByte :: Integer -> Bool
 isByte i = case length (show i) of
@@ -95,29 +89,29 @@ instance Size FunType where
     size (FunType t ts) = size ts - size t
 
 instance Size Fun where
-    size (Fun _ ft) = size ft
+    size (LLVM.Fun _ ft) = size ft
 
-class ToJVM a where
-    tojvm :: a -> String
+class ToLLVM a where
+    tollvm :: a -> String
 
-instance ToJVM Type where 
-    tojvm t = case t of
+instance ToLLVM Type where 
+    tollvm t = case t of
         Int -> "I"
         Void -> "V"
         Double -> "D"
         Bool -> "Z"
 
-instance ToJVM FunType where
-    tojvm (FunType t ts) = "(" ++ (tojvm =<< ts) ++ ")" ++ tojvm t
+instance ToLLVM FunType where
+    tollvm (FunType t ts) = "(" ++ (tollvm =<< ts) ++ ")" ++ tollvm t
 
-instance ToJVM Fun where
-    tojvm (Fun (Id f) t) = f ++ tojvm t
+instance ToLLVM Fun where
+    tollvm (LLVM.Fun (Ident f) t) = f ++ tollvm t
 
-instance ToJVM Label where
-    tojvm (L l) = "L" ++ show l
+instance ToLLVM Label where
+    tollvm (L l) = "L" ++ show l
 
-instance ToJVM CmpOp where
-    tojvm cmpOp = case cmpOp of
+instance ToLLVM CmpOp where
+    tollvm cmpOp = case cmpOp of
         OLt -> "lt"
         OGt -> "gt"
         OLtEq -> "le"
@@ -125,44 +119,52 @@ instance ToJVM CmpOp where
         OEq -> "eq"
         ONEq -> "ne"
 
-instance ToJVM AddOp where
-    tojvm addOp = case addOp of
+instance ToLLVM AddOp where
+    tollvm addOp = case addOp of
         OPlus -> "add"
         OMinus -> "sub"
 
-instance ToJVM MulOp where
-    tojvm mulOp = case mulOp of
+instance ToLLVM MulOp where
+    tollvm mulOp = case mulOp of
         OTimes -> "mul"
-        ODiv -> "div"
+        ODiv -> "sdiv"
 
 
-instance ToJVM Code where
-    tojvm code = case code of
-        Store t n -> prefix t ++ "store " ++ show n
-        Load t n -> prefix t ++ "load " ++ show n
-        Return t -> prefix t ++ "return"
-        Call f -> "invokestatic " ++ tojvm f
+
+
+instance ToLLVM Code where
+    tollvm code = case code of
+        Alloca t  -> "alloca" ++ t ++ show n
+        Store t val addr -> concat ["store", show t, " ", show val, ", " show t, "* " show addr]
+        Load t n -> concat ["load", show t, "* ", show n]--todo, maybe done
+        Return t -> prefix t ++ "ret"   --todo
+        Call f -> "invokestatic " ++ tollvm f
         DConst d -> "ldc2_w " ++ show d
         IConst i
             | i == -1 -> "iconst_m1"
             | i >= 0 && i <= 5 -> "iconst_" ++ show i
             | isByte i -> "bipush " ++ show i
             | otherwise -> "ldc " ++ show i
-        Dup Double -> "dup2"
-        Dup _  -> "dup"
-        Pop Double -> "pop2"
+       
+        call
         Pop _ -> "pop"
-        Label l -> tojvm l ++ ":"
-        Goto l -> "goto " ++ tojvm l
-        If op l -> "if" ++ tojvm op ++ " " ++ tojvm l
+        Label l -> tollvm l ++ ":"
+        Goto l -> "goto " ++ tollvm l
+        If op l -> "if" ++ tollvm op ++ " " ++ tollvm l
         c@(IfCmp Double _ _) -> error $ "not allowed " ++ show c
         c@(IfCmp Void _ _) -> error $ "not allowed " ++ show c
-        IfCmp _ op l -> "if_icmp" ++ tojvm op ++ " " ++ tojvm l
+        IfCmp _ op l -> "if_icmp" ++ tollvm op ++ " " ++ tollvm l
         DCmp -> "dcmpg"
         Inc Int a k -> "iinc " ++ show a ++ " " ++ show k
         c@Inc{} -> error $ "npt possible " ++ show c
-        Add t op -> prefix t ++ tojvm op
-        Mult t op -> prefix t ++ tojvm op
+        Add t op -> case t of 
+            Int -> tollvm op ++ prefix t
+            Double -> "f" ++ tollvm op ++ prefix t   
+        Mult t op -> case t of
+            Int -> tollvm op ++ prefix t 
+            Double -> case op of
+                OTimes -> "fmul" ++ prefix t
+                ODiv -> "fdiv" ++ prefix t
         I2D -> "i2d"
         Comment "" -> ""
         Comment s -> ";; " ++ s

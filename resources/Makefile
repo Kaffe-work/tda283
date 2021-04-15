@@ -35,7 +35,7 @@ $(tarfile) : src/ lib/ doc/ Makefile
 #################################
 ############ Rule for testing the 
 test: $(tarfile)
-	cd .. && cd tester && python3 testing.py ../resources/$^
+	cd .. && cd tester && python3 testing.py --llvm ../resources/$^
 ###############################################
 ############ Rule for cleaning generated files:
 clean :
