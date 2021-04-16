@@ -14,6 +14,18 @@ data FunType = FunType {funRet :: Type, funParse :: [Type]}
 
 type Addr = Int
 
+data Val
+    = ETrue 
+    | EFalse
+    | EInt Integer
+    | EDouble Double
+    | Void
+
+data ArithOp 
+    = EMul MulOp 
+    | EAdd AddOp 
+--  |  Eor | EAnd etc binOp?    
+
 newtype Label = L { theLabel :: Int }
     deriving (Eq, Enum, Show)
 
@@ -21,14 +33,14 @@ data Code
     = Alloca Type
     | Store Type Val Addr 
     | Load  Type Addr
-    | Call
-    | Label
-    | Ret
-    | Branch
-    | Cmp
-    | Arith
-    | Neg
-    | Not 
+    | Call Type Addr [(Type, Addr)]
+    | Label Label
+    | Ret Type Val
+    | Branch Label
+    | Cmp Type CmpOp 
+    | Arith Type ArithOp
+    | Neg Type
+    | Not Type
     
     deriving (Show)
 
@@ -138,15 +150,12 @@ instance ToLLVM Code where
         Store t val addr -> concat ["store", show t, " ", show val, ", " show t, "* " show addr]
         Load t n -> concat ["load", show t, "* ", show n]--todo, maybe done
         Return t -> prefix t ++ "ret"   --todo
-        Call f -> "invokestatic " ++ tollvm f
-        DConst d -> "ldc2_w " ++ show d
-        IConst i
-            | i == -1 -> "iconst_m1"
-            | i >= 0 && i <= 5 -> "iconst_" ++ show i
-            | isByte i -> "bipush " ++ show i
-            | otherwise -> "ldc " ++ show i
-       
-        call
+        Call t val -> concat ["call", show t, show addr, "(",  ")" ]
+        Ret t val -> concat ["ret", show t, show val]
+        Branch l -> concat ["br", "label", show l ]
+
+
+        
         Pop _ -> "pop"
         Label l -> tollvm l ++ ":"
         Goto l -> "goto " ++ tollvm l
