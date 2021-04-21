@@ -14,38 +14,31 @@ data FunType = FunType {funRet :: Type, funParse :: [Type]}
 
 type Addr = Int
 
-data Val
-    = ETrue 
-    | EFalse
-    | EInt Integer
-    | EDouble Double
-    | Void
-
-data ArithOp 
-    = EMul MulOp 
-    | EAdd AddOp 
---  |  Eor | EAnd etc binOp?    
+data ArithOp
+    = EMul MulOp
+    | EAdd AddOp
+    deriving (Show)
 
 newtype Label = L { theLabel :: Int }
     deriving (Eq, Enum, Show)
 
 data Code
     = Alloca Type
-    | Store Type Val Addr 
+    | Store Type Addr
     | Load  Type Addr
     | Call Type Addr [(Type, Addr)]
     | Label Label
-    | Ret Type Val
+    | Ret Type
     | Branch Label
-    | Cmp Type CmpOp 
-    | Arith Type ArithOp
+    | Cmp Type CmpOp
+    | Add Type AddOp
+    | Mul Type MulOp
     | Neg Type
     | Not Type
-    
     deriving (Show)
 
-pattern IfZ l = If OEq l
-pattern IfNZ l = If ONEq l
+--pattern IfZ l = If OEq l
+--pattern IfNZ l = If ONEq l
 
 negateCmp :: CmpOp -> CmpOp
 negateCmp cmpOp = case cmpOp of
@@ -56,22 +49,13 @@ negateCmp cmpOp = case cmpOp of
     OLtEq -> OGt
     OGtEq -> OLt
 
-flipCmp :: CmpOp -> CmpOp
-flipCmp cmpOp = case cmpOp of
-    OEq -> OEq
-    ONEq -> ONEq
-    OLt -> OGt
-    OGt -> OLt
-    OLtEq -> OGtEq
-    OGtEq -> OLtEq
-
 prefix :: Type -> String
 prefix typ = case typ of
     Int -> "i32"
-    Double -> "f64" "double"
+    Double -> "f64" --"double"
     Bool -> "i1"
     Void -> "void"
-    String -> "i8*"
+    --EString -> "i8*" --maybe not estring?? todo
 
 isByte :: Integer -> Bool
 isByte i = case length (show i) of
@@ -94,7 +78,7 @@ instance Size Ident where
 instance (Size a, Size b) => Size (a,b) where
     size (x, y) = size x + size y
 
-instance Size a => Size [a] where 
+instance Size a => Size [a] where
     size = sum . map size
 
 instance Size FunType where
@@ -106,12 +90,12 @@ instance Size Fun where
 class ToLLVM a where
     tollvm :: a -> String
 
-instance ToLLVM Type where 
+instance ToLLVM Type where
     tollvm t = case t of
-        Int -> "I"
-        Void -> "V"
-        Double -> "D"
-        Bool -> "Z"
+        Int -> "i32"
+        Void -> "void"
+        Double -> "f64"
+        Bool -> "i1"
 
 instance ToLLVM FunType where
     tollvm (FunType t ts) = "(" ++ (tollvm =<< ts) ++ ")" ++ tollvm t
@@ -132,7 +116,7 @@ instance ToLLVM CmpOp where
         ONEq -> "ne"
 
 instance ToLLVM AddOp where
-    tollvm addOp = case addOp of
+    tollvm addOp  = case addOp of
         OPlus -> "add"
         OMinus -> "sub"
 
@@ -140,22 +124,36 @@ instance ToLLVM MulOp where
     tollvm mulOp = case mulOp of
         OTimes -> "mul"
         ODiv -> "sdiv"
+        OMod -> "srem"
 
 
 
 
 instance ToLLVM Code where
     tollvm code = case code of
-        Alloca t  -> "alloca" ++ t ++ show n
-        Store t val addr -> concat ["store", show t, " ", show val, ", " show t, "* " show addr]
-        Load t n -> concat ["load", show t, "* ", show n]--todo, maybe done
-        Return t -> prefix t ++ "ret"   --todo
-        Call t val -> concat ["call", show t, show addr, "(",  ")" ]
-        Ret t val -> concat ["ret", show t, show val]
+        Alloca t  -> "alloca " ++ show t -- ++ show n
+        Store t addr -> concat ["store ", show t, ", ", show t, "* ", show addr]
+        Load t addr -> concat ["load", show t, "* ", show addr]--todo, maybe done
+        Call typ addr [fnty, fnpointer] -> concat ["call", show typ, show addr, "(", ")" ]
+        Ret t -> "ret" ++ show t
         Branch l -> concat ["br", "label", show l ]
+        Cmp typ op -> case typ of
+            Int -> "icmp " ++ tollvm op ++ tollvm typ
+            Double -> "fcmp " ++ tollvm op ++ tollvm typ
+        Add typ op -> case typ of
+            Int -> tollvm op ++ tollvm typ
+            Double -> "f" ++ tollvm op ++ tollvm typ
+        Mul typ op -> case typ of
+            Int -> tollvm op ++ tollvm typ
+            Double -> case op of
+                ODiv -> "fdiv " ++ tollvm typ
+                OMod -> "frem " ++ tollvm typ
+                _ -> "f" ++ tollvm op ++ tollvm typ --Otherwise it is OTimes
+        Neg typ -> "fneg " ++ tollvm typ
+        Not typ -> concat ["xor ", show typ, " ", ", true"] -- using xor with [a, true] will always result in the inverse of a
 
-
-        
+        --Return t -> prefix t ++ "ret"   --todo
+        {--
         Pop _ -> "pop"
         Label l -> tollvm l ++ ":"
         Goto l -> "goto " ++ tollvm l
@@ -177,3 +175,4 @@ instance ToLLVM Code where
         I2D -> "i2d"
         Comment "" -> ""
         Comment s -> ";; " ++ s
+        --}

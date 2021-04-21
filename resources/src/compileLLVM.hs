@@ -25,7 +25,7 @@ import LLVM
       FunType(FunType),
       Label(L),
       Size(..),
-      ToJVM(tojvm) )
+      ToLLVM(tollvm) )
 
 pattern IfZ l = If OEq l
 pattern IfNZ l = If ONEq l
@@ -111,10 +111,11 @@ compile name (PDefs defs) = do
 
 builtin :: [(Ident, Fun)]
 builtin =
-    [ (Id "printInt", Fun (Id "Runtime/printInt") $ FunType Type_void [Type_int]),
-      (Id "readInt", Fun (Id "Runtime/readInt") $ FunType Type_int []),
-      (Id "printDouble", Fun (Id "Runtime/printDouble") $ FunType Type_void [Type_double]),
-      (Id "readDouble", Fun (Id "Runtime/readDouble") $ FunType Type_double [])]
+    [ (Id "printInt", Fun (Id "Runtime/printInt") $ FunType Void [Int]),
+      (Id "readInt", Fun (Id "Runtime/readInt") $ FunType Int []),
+      (Id "printDouble", Fun (Id "Runtime/printDouble") $ FunType Void [Double]),
+      (Id "readDouble", Fun (Id "Runtime/readDouble") $ FunType Double []),
+      (Id "printString", Fun (Id "Runtime/printString") $ FunType Void [Int])]
 
 
 indent :: String -> String
@@ -123,13 +124,13 @@ indent s = if null s then s else "\t" ++ s
 compileDef :: Sig -> Def -> [String]
 compileDef sig0 def@(DFun typ id args stms) = concat
     [["",
-      ".method public static " ++ tojvm (Fun id $ funType def)
+      ".define " ++ ToLLVM (Fun id $ funType def)
     ],
     [".limit locals " ++ show (limitLocals st),
      ".limit stack " ++ show (limitStack st)
     ],
-    map (indent . tojvm) $ reverse (output st),
-    ["return",
+    map (indent . ToLLVM) $ reverse (output st),
+    ["ret",
      ".end method"
     ]
     ]
@@ -155,11 +156,13 @@ compileStm stm = do
             emit $ Pop typ
         SDecls typ ids -> do
             mapM_ (`newVar` typ) ids
-        SInit typ id exp -> do
+        Init typ id exp -> do
             newVar id typ
             compileExp exp
             (addr, _) <- lookupVar id
             emit $ Store typ addr
+        NoInit typ ids -> do
+            
         SReturn typ exp -> do
             compileExp exp
             emit $ Return typ
@@ -213,9 +216,6 @@ compileExp exp = case exp of
         -- error $ "fun: " ++ show fun ++ " exps: " ++ show exps
         mapM_ compileExp exps
         emit $ Call fun
-    EI2D exp -> do
-        compileExp exp
-        emit I2D
     EPost typ id OInc -> compilePost typ id OPlus
     EPost typ id ODec -> compilePost typ id OMinus
     EPre typ OInc id -> compilePre typ id OPlus
@@ -261,8 +261,8 @@ compilePost typ id op = do
     emit $ Load typ addr
     emit $ Dup typ
     case typ of
-        Type_int -> emit $ IConst 1
-        Type_double -> emit $ DConst 1
+        Int -> emit $ IConst 1
+        Double -> emit $ DConst 1
     emit $ Add typ op
     emit $ Store typ addr -- Postinc does not eval to the updated val
 
@@ -272,13 +272,13 @@ compilePre typ id op = do
     emit $ Load typ addr
     emit $ Dup typ
     case typ of
-        Type_int -> emit $ IConst 1
-        Type_double -> emit $ DConst 1
+        Int -> emit $ IConst 1
+        Double -> emit $ DConst 1
     emit $ Add typ op
     emit $ Store typ addr
     case typ of
-        Type_int -> emit $ IConst 1
-        Type_double -> emit $ DConst 1
+        Int -> emit $ IConst 1
+        Double -> emit $ DConst 1
     emit $ Add typ op -- Probably should use Inc, but address is a problem
 
 compileCmp :: Type -> Exp -> Exp -> CmpOp -> Compile ()
@@ -322,18 +322,18 @@ newVar id typ = do
     case cxts of
         (c:cs) -> do
             case typ of
-                Type_double -> modify $ \ st -> st {cxt = Map.insert id (limLocls, Type_double) c:cs, limitLocals = limLocls + 2 }
+                Double -> modify $ \ st -> st {cxt = Map.insert id (limLocls, Double) c:cs, limitLocals = limLocls + 2 }
                 _ -> modify $ \ st -> st {cxt = Map.insert id (limLocls, typ) c:cs, limitLocals = limLocls + 1 }
         [] -> error "newVar: no context"
 -}
 
-newVar :: Id -> Type -> Compile ()
+newVar :: Ident -> Type -> Compile ()
 newVar id typ = do
     modify $ \ st@St{ cxts = (b:bs) } -> st { cxts = ((id,typ) : b) : bs }
     updateLimitLocals
 
-lookupVar :: Id -> Compile (Addr, Type)
-lookupVar id = loop . concat <$> gets cxts
+lookupVar :: Ident -> Compile (Addr, Type)
+lookupVar id = gets ((loop . concat) . cxts)
     where
         loop [] = do
             error $ "Variable " ++ show id ++ " is unbound"
@@ -344,7 +344,7 @@ lookupVar id = loop . concat <$> gets cxts
 updateLimitLocals :: Compile ()
 updateLimitLocals = do
   old <- gets limitLocals
-  new <- size <$> gets cxts
+  new <- gets (size . cxts)
   when (new > old) $
     modify $ \ st -> st { limitLocals = new }
 
@@ -357,49 +357,65 @@ decStack t = modStack $ negate (size t)
 
 modStack :: Int -> Compile ()
 modStack n = do
-    new <- (n +) <$> gets currentStack
+    new <- gets ((n +) . currentStack)
     modify $ \ st -> st {currentStack = new}
     old <- gets limitStack
     when (new > old) $
         modify $ \ st -> st {limitStack = new}
 
 emit :: Code -> Compile ()
-emit (Store Type_void _) = return ()
-emit (Load Type_void _) = return ()
-emit (Dup Type_void) = return ()
-emit (Pop Type_void) = return ()
-emit (Inc typ@Type_double addr d) = do
+emit (Store Void _) = return ()
+emit (Load Void _) = return ()
+emit (Dup Void) = return ()
+emit (Pop Void) = return ()
+emit (Inc typ@Double addr d) = do
     emit $ Load typ addr
     emit $ DConst $ fromIntegral d
     emit $ Add typ OPlus
     emit $ Store typ addr
-emit (IfCmp Type_double op l) = do -- for comparision with doubles
+emit (IfCmp Double op l) = do -- for comparision with doubles
     emit $ DCmp
     emit $ If op l
 emit c = do
     modify $ \ st@St{output = cs} -> st {output = c:cs}
     adjustStack c
 
+    {--
 adjustStack :: Code -> Compile ()
 adjustStack c = case c of
+    Alloca t
+    Store t _
+    Load  t 
+    Call Type Addr [(Type, Addr)]
+    Label Label
+    Ret Type
+    Branch Label
+    Cmp Type CmpOp
+    Add Type AddOp
+    Mul Type MulOp
+    Neg Type
+    Not Type
+
+
     Store t _ -> decStack t
     Load t _ -> incStack t
-    IConst _ -> incStack Type_int
-    DConst _ -> incStack Type_double
+    IConst _ -> incStack Int
+    DConst _ -> incStack Double
     Dup t -> incStack t
     Pop t -> decStack t
     Return t -> decStack t
     Call f -> decStack f
     Label{} -> return ()
     Goto{} -> return ()
-    If _ _ -> decStack Type_int
+    If _ _ -> decStack Int
     IfCmp t _ _ -> decStack t >> decStack t
-    DCmp -> decStack Type_double >> decStack Type_double >> incStack Type_int
+    DCmp -> decStack Double >> decStack Double >> incStack Int
     Inc{} -> return ()
     Add t _ -> decStack t
     Mult t _ -> decStack t
-    I2D -> decStack Type_int >> incStack Type_double
+    I2D -> decStack Int >> incStack Double
     Comment _ -> return ()
+    --}
 
 comment :: String -> Compile ()
 comment =  emit . Comment
