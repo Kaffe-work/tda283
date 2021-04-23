@@ -208,35 +208,43 @@ checkStms env stms typ = case stms of
 checkStm :: Env -> Type -> Stm -> Err Env
 checkStm env typ stm = case stm of
     SEmpty -> Ok env
+
     SBlock stms -> do
         let env1 = newBlock env
         case checkStms env1 stms typ of
             Ok env -> do
                 let (sig, _:cxts) = env
                 return (sig, cxts)
+
             Bad string -> Bad string
     SDecls typ1 items -> foldM (addItemFold typ1) env items 
         where addItemFold typ env item = addItem env typ item
+
     SAss id exp -> do
         typ1 <- lookupVar env id
         typ2 <- inferExp env exp
         if typ1 == typ2 then Ok env
         else Bad "mismatch operand types"
+
     SIncr id -> do
         typ1 <- lookupVar env id 
         if typ1 `elem` [Int, Double] then Ok env
         else Bad "Can only increment Int/Double"
+
     SDecr id -> do
         typ1 <- lookupVar env id 
         if typ1 `elem` [Int, Double] then Ok env
         else Bad "Can only increment Int/Double"
+
     SReturn exp -> do
         checkExp env typ exp
         return env
+
     SNoReturn -> do 
         case typ of
             Void -> Ok env
             _ -> Bad "Non-void functions must return a value"
+
     SIf exp stm1 -> do
         checkExp env Bool exp
         let env1 = newBlock env
@@ -245,6 +253,7 @@ checkStm env typ stm = case stm of
                 let (sig, _:cxts) = env
                 return (sig, cxts)
             Bad string -> Bad string
+
     SIfElse exp stm1 stm2 -> do
         checkExp env Bool exp
         let env1 = newBlock env
@@ -258,6 +267,7 @@ checkStm env typ stm = case stm of
                         return (sig1, cxts1)
                     Bad string -> Bad string
             Bad string -> Bad string
+
     SWhile exp stm1 -> do
         checkExp env Bool exp
         let env1 = newBlock env
@@ -266,6 +276,7 @@ checkStm env typ stm = case stm of
                 let (sig, _:cxts) = env
                 return (sig, cxts)
             Bad string -> Bad string
+            
     SExp exp -> do
         typ <- inferExp env exp
         case typ of

@@ -35,6 +35,9 @@ data Code
     | Mul Type MulOp
     | Neg Type
     | Not Type
+    | IConst Integer
+    | DConst Double
+    | If 
     deriving (Show)
 
 --pattern IfZ l = If OEq l

@@ -2,3 +2,5 @@
 *.o
 resources/src/Javalette/*
 resources/jlc
+code.hs
+lab3compiler.hs

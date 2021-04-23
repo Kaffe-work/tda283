@@ -27,8 +27,8 @@ import LLVM
       Size(..),
       ToLLVM(tollvm) )
 
-pattern IfZ l = If OEq l
-pattern IfNZ l = If ONEq l
+--pattern IfZ l = EIf OEq l
+--pattern IfNZ l = If ONEq l
 
 type Sig = Map Ident Fun
 
@@ -65,15 +65,12 @@ type Compile = State St
 
 -- | Entry point.
 
-compile
-  :: String  -- ^ Class name.
-  -> Program -- ^ Type-annotated program.
-  -> String  -- ^ Generated jasmin source file content.
+compile :: String  -> Program -> String -- Class name -> Type-annotated program -> Generated source file content.
 compile name (PDefs defs) = do
     unlines $ concat $ header : map (compileDef initSig) defs
     where
         initSig = Map.fromList $ builtin ++ map sigEntry defs
-        sigEntry def@(DFun _ id@(Id id1) _ _) = (id, Fun (Id $name ++ "/" ++ id1) $ funType def)
+        sigEntry def@(DFun _ id@(Ident id1) _ _) = (id, LLVM.Fun (Ident $name ++ "/" ++ id1) $ funType def)
         header = concat
           [  [ ";; BEGIN HEADER"
             , ""
@@ -111,11 +108,11 @@ compile name (PDefs defs) = do
 
 builtin :: [(Ident, Fun)]
 builtin =
-    [ (Id "printInt", Fun (Id "Runtime/printInt") $ FunType Void [Int]),
-      (Id "readInt", Fun (Id "Runtime/readInt") $ FunType Int []),
-      (Id "printDouble", Fun (Id "Runtime/printDouble") $ FunType Void [Double]),
-      (Id "readDouble", Fun (Id "Runtime/readDouble") $ FunType Double []),
-      (Id "printString", Fun (Id "Runtime/printString") $ FunType Void [Int])]
+    [ (Ident "printInt", LLVM.Fun (Ident "Runtime/printInt") $ FunType Void [Int]),
+      (Ident "readInt", LLVM.Fun (Ident "Runtime/readInt") $ FunType Int []),
+      (Ident "printDouble", LLVM.Fun (Ident "Runtime/printDouble") $ FunType Void [Double]),
+      (Ident "readDouble", LLVM.Fun (Ident "Runtime/readDouble") $ FunType Double []),
+      (Ident "printString", LLVM.Fun (Ident "Runtime/printString") $ FunType Void [Int])]
 
 
 indent :: String -> String
@@ -124,12 +121,12 @@ indent s = if null s then s else "\t" ++ s
 compileDef :: Sig -> Def -> [String]
 compileDef sig0 def@(DFun typ id args stms) = concat
     [["",
-      ".define " ++ ToLLVM (Fun id $ funType def)
+      ".define " ++ tollvm (LLVM.Fun id $ funType def)
     ],
     [".limit locals " ++ show (limitLocals st),
      ".limit stack " ++ show (limitStack st)
     ],
-    map (indent . ToLLVM) $ reverse (output st),
+    map (indent . tollvm) $ reverse (output st),
     ["ret",
      ".end method"
     ]
@@ -151,21 +148,24 @@ compileStm stm = do
         mapM_ comment $ lines top
     -}
     case stm of
-        SExp typ exp -> do
+        SExp exp -> do
             compileExp exp
-            emit $ Pop typ
-        SDecls typ ids -> do
-            mapM_ (`newVar` typ) ids
+            --emit $ Pop typ
+        SDecls typ items -> do
+            mapM_ (`newVar` typ) items
+        {--
         Init typ id exp -> do
             newVar id typ
             compileExp exp
             (addr, _) <- lookupVar id
             emit $ Store typ addr
-        NoInit typ ids -> do
-            
-        SReturn typ exp -> do
+        NoInit typ id -> do
+            (addr, _) <- lookupVar id 
+            emit $ Store typ addr
+            --}
+        SReturn exp -> do
             compileExp exp
-            emit $ Return typ
+            emit $ Ret 
         SWhile exp stm -> do
             true <- newLabel
             false <- newLabel
@@ -204,8 +204,8 @@ compileCond cond l exp = case exp of
 
 compileExp :: Exp -> Compile ()
 compileExp exp = case exp of
-    EBool LTrue -> emit $ IConst 1
-    EBool LFalse -> emit $ IConst 0
+    ETrue  -> emit $ IConst 1
+    EFalse  -> emit $ IConst 0
     EInt i -> emit $ IConst i
     EDouble d -> emit $ DConst d
     EId id -> do
@@ -216,19 +216,23 @@ compileExp exp = case exp of
         -- error $ "fun: " ++ show fun ++ " exps: " ++ show exps
         mapM_ compileExp exps
         emit $ Call fun
-    EPost typ id OInc -> compilePost typ id OPlus
-    EPost typ id ODec -> compilePost typ id OMinus
-    EPre typ OInc id -> compilePre typ id OPlus
-    EPre typ ODec id -> compilePre typ id OMinus
-    EMul typ exp1 op exp2 -> do
-        compileExp exp1
-        compileExp exp2
-        emit $ Mult typ op
-    EAdd typ exp1 op exp2 -> do
+    --EPost typ id OInc -> compilePost typ id OPlus
+    --EPost typ id ODec -> compilePost typ id OMinus
+    --EPre typ OInc id -> compilePre typ id OPlus
+    --EPre typ ODec id -> compilePre typ id OMinus
+    EMul exp1 op exp2 -> do
+        r1 <- compileExp exp1
+        r2 <- compileExp exp2
+        case op of
+            OTimes -> emit $ Mul typ op
+            ODiv -> emit $ Mul typ op
+            OMod -> emit $ Mul typ op
+        emit $ MulOp typ op
+    EAdd exp1 op exp2 -> do
         compileExp exp1
         compileExp exp2
         emit $ Add typ op
-    ECmp typ exp1 cmpOp exp2 -> compileCmp typ exp1 exp2 cmpOp
+    ECmp exp1 cmpOp exp2 -> compileCmp typ exp1 exp2 cmpOp
     EAnd exp1 exp2 -> do
         compileExp exp1
         true <- newLabel
@@ -249,37 +253,12 @@ compileExp exp = case exp of
         emit $ Label false
         compileExp exp2 -- check if exp2 is true
         emit $ Label true
-    EAss id exp -> do
+    SAss ident exp -> do
         (addr, typ) <- lookupVar id
         compileExp exp
         emit $ Store typ addr
         emit $ Load typ addr
 
-compilePost :: Type -> Id -> AddOp -> Compile ()
-compilePost typ id op = do
-    (addr, typ) <- lookupVar id
-    emit $ Load typ addr
-    emit $ Dup typ
-    case typ of
-        Int -> emit $ IConst 1
-        Double -> emit $ DConst 1
-    emit $ Add typ op
-    emit $ Store typ addr -- Postinc does not eval to the updated val
-
-compilePre :: Type -> Id -> AddOp -> Compile ()
-compilePre typ id op = do
-    (addr, typ) <- lookupVar id
-    emit $ Load typ addr
-    emit $ Dup typ
-    case typ of
-        Int -> emit $ IConst 1
-        Double -> emit $ DConst 1
-    emit $ Add typ op
-    emit $ Store typ addr
-    case typ of
-        Int -> emit $ IConst 1
-        Double -> emit $ DConst 1
-    emit $ Add typ op -- Probably should use Inc, but address is a problem
 
 compileCmp :: Type -> Exp -> Exp -> CmpOp -> Compile ()
 compileCmp typ exp1 exp2 op = do
@@ -366,16 +345,16 @@ modStack n = do
 emit :: Code -> Compile ()
 emit (Store Void _) = return ()
 emit (Load Void _) = return ()
-emit (Dup Void) = return ()
-emit (Pop Void) = return ()
-emit (Inc typ@Double addr d) = do
-    emit $ Load typ addr
-    emit $ DConst $ fromIntegral d
-    emit $ Add typ OPlus
-    emit $ Store typ addr
-emit (IfCmp Double op l) = do -- for comparision with doubles
-    emit $ DCmp
-    emit $ If op l
+--emit (Dup Void) = return ()
+--emit (Pop Void) = return ()
+--emit (Inc typ@Double addr d) = do
+--    emit $ Load typ addr
+--    emit $ DConst $ fromIntegral d
+--    emit $ Add typ OPlus
+--    emit $ Store typ addr
+--emit (IfCmp Double op l) = do -- for comparision with doubles
+--    emit $ DCmp
+--    emit $ If op l
 emit c = do
     modify $ \ st@St{output = cs} -> st {output = c:cs}
     adjustStack c

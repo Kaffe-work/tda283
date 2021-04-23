@@ -1,6 +1,9 @@
 Resources
 =========
 
+Suffering implemented by Phones and kaffe
+
+
 [Javalette.cf](Javalette.cf):
 Javalette BNFC grammar
 
