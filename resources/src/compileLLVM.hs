@@ -17,15 +17,27 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 
 import Javalette.Abs
-import LLVM
-    ( negateCmp,
-      Code(..),
-      Fun(..),
-      Addr,
-      FunType(FunType),
-      Label(L),
-      Size(..),
-      ToLLVM(tollvm) )
+import LLVM 
+    --( negateCmp,
+    --  Instructions(..),
+    --  Fun(..),
+    --  Addr,
+    --  FunType(FunType),
+    --  Label(L),
+    --  Size(..),
+    --  ToLLVM(tollvm) )
+
+type Code = [Instructions]
+data Env = Env  {
+                  nextReg :: Reg 
+                , scope   :: [Map.Map Ident Addr] 
+                , nextLbl :: Int
+                , globals :: [(Value, String)]
+                , code    :: Code
+                }
+
+type LLVM a = State Env a
+
 
 --pattern IfZ l = EIf OEq l
 --pattern IfNZ l = If ONEq l
@@ -139,7 +151,14 @@ compileFun t (DFun typ id args stms) = do
     mapM_ (\ (ADecl t' id') -> newVar id' t') args
     mapM_ compileStm stms
 
-compileStm :: Stm -> Compile ()
+compileStm :: Stm -> LLVM ()
+compileStm SEmpty = return ()
+compileStm (SAss x e ) = do
+    r <- compileExp e
+    addr@(Addr _ pr ) <- newVar x
+    emit $ Store (Type t) (Ref reg ) p
+
+
 compileStm stm = do
     {-
     let top = stmTop s0
@@ -257,7 +276,7 @@ compileExp exp = case exp of
         (addr, typ) <- lookupVar id
         compileExp exp
         emit $ Store typ addr
-        emit $ Load typ addr
+        emit $ Store typ addr
 
 
 compileCmp :: Type -> Exp -> Exp -> CmpOp -> Compile ()
@@ -320,6 +339,14 @@ lookupVar id = gets ((loop . concat) . cxts)
           | id == id1 = (size cs, typ)
           | otherwise = loop cs
 
+--lookupVar :: Ident -> Compile (Addr, Type)
+--lookupVar id = do
+--    e@St{cxts = s } <- get 
+--    case lookupVar' id s of 
+--        Nothing -> error $ "variable" ++ show id ++ " unbound"
+--        Just n -> return n
+--
+
 updateLimitLocals :: Compile ()
 updateLimitLocals = do
   old <- gets limitLocals
@@ -342,9 +369,9 @@ modStack n = do
     when (new > old) $
         modify $ \ st -> st {limitStack = new}
 
-emit :: Code -> Compile ()
-emit (Store Void _) = return ()
-emit (Load Void _) = return ()
+emit :: Instructions -> Compile ()
+emit (Store Void _ ptr) = return ()
+emit (Load _ Void ) = return ()
 --emit (Dup Void) = return ()
 --emit (Pop Void) = return ()
 --emit (Inc typ@Double addr d) = do

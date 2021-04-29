@@ -1,8 +1,8 @@
 # Makefile for happiness 
 ############################################################################ Files of solution.  Add more files as needed.  'jlc.hs'  has to be first!
 files=src/jlc.hs src/Javalette.cf Makefile src/Typechecker.hs
-part=A
-resubmission=2
+part=B
+resubmission=1
 tarfile = part$(part)-$(resubmission).tar.gz
 ############################################################################ List of goals not corresponding to file names.
 .PHONY : all tar test clean
@@ -32,8 +32,8 @@ $(tarfile) : src/ lib/ doc/ Makefile
 	cp -r $^ $(tmpdir)/
 	tar -C $(tmpdir) -czhf $@ $^
 
-#################################
-############ Rule for testing the 
+#############################
+############ Rule for testing 
 test: $(tarfile)
 	cd .. && cd tester && python3 testing.py --llvm ../resources/$^
 ###############################################
