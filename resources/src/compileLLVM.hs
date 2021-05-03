@@ -154,9 +154,19 @@ compileFun t (DFun typ id args stms) = do
 compileStm :: Stm -> LLVM ()
 compileStm SEmpty = return ()
 compileStm (SAss x e ) = do
-    r <- compileExp e
+    r <- compileExp t e
     addr@(Addr _ pr ) <- newVar x
     emit $ Store (Type t) (Ref reg ) p
+
+compileStm (DeclADecl Type Ident) = declare t items
+    where 
+    declare :: Type -> [Item] -> LLVM ()
+    declare t [] = return ()
+    declare t (NoInit x:xs) = do
+        addr <- addVar t x
+        initDefault addr 
+        declare t xs
+    declar t (Init)
 
 
 compileStm stm = do
@@ -167,8 +177,17 @@ compileStm stm = do
         mapM_ comment $ lines top
     -}
     case stm of
+        {--
+        Cond s e -> do 
+            reg <- compileExp typ exp 
+            true <- newLabel
+            cont <- newLabel
+            cond <- newReg 
+            emit $ cmp (Ref cond) EQU (Type Bool ) (Ref reg) (Const 1)
+            emit $ BrCond (Ref cond) true cont
+        --}
         SExp exp -> do
-            compileExp exp
+            compileExp typ exp
             --emit $ Pop typ
         SDecls typ items -> do
             mapM_ (`newVar` typ) items
@@ -221,8 +240,8 @@ compileCond cond l exp = case exp of
         emit $ (if cond then IfNZ else IfZ) l
         -}
 
-compileExp :: Exp -> Compile ()
-compileExp exp = case exp of
+compileExp :: Type -> Exp -> LLVM ()
+compileExp typ exp = case exp of
     ETrue  -> emit $ IConst 1
     EFalse  -> emit $ IConst 0
     EInt i -> emit $ IConst i
@@ -233,56 +252,58 @@ compileExp exp = case exp of
     EApp id exps-> do
         fun <- fromMaybe (error $ "Undefined " ++ show id {-++ printTree f-}) . Map.lookup id <$> gets sig
         -- error $ "fun: " ++ show fun ++ " exps: " ++ show exps
-        mapM_ compileExp exps
+        mapM_ compileExp typs exps
         emit $ Call fun
     --EPost typ id OInc -> compilePost typ id OPlus
     --EPost typ id ODec -> compilePost typ id OMinus
     --EPre typ OInc id -> compilePre typ id OPlus
     --EPre typ ODec id -> compilePre typ id OMinus
     EMul exp1 op exp2 -> do
-        r1 <- compileExp exp1
-        r2 <- compileExp exp2
+        r1 <- compileExp typ exp1
+        r2 <- compileExp typ exp2
         case op of
             OTimes -> emit $ Mul typ op
             ODiv -> emit $ Mul typ op
             OMod -> emit $ Mul typ op
         emit $ MulOp typ op
     EAdd exp1 op exp2 -> do
-        compileExp exp1
-        compileExp exp2
+        compileExp typ exp1
+        compileExp typ exp2
         emit $ Add typ op
     ECmp exp1 cmpOp exp2 -> compileCmp typ exp1 exp2 cmpOp
     EAnd exp1 exp2 -> do
-        compileExp exp1
+        compileExp typ exp1
         true <- newLabel
         false <- newLabel
         emit $ If OEq false -- check exp1
-        compileExp exp2 -- exp1 true
+        compileExp typ exp2 -- exp1 true
         emit $ Goto true
         emit $ Label false
         emit $ IConst 0
         emit $ Label true
     EOr exp1 exp2 -> do
-        compileExp exp1
+        compileExp typ exp1
         true <- newLabel
         false <- newLabel
         emit $ If OEq false -- check exp1
         emit $ IConst 1 -- exp1 true
         emit $ Goto true
         emit $ Label false
-        compileExp exp2 -- check if exp2 is true
+        compileExp typ exp2 -- check if exp2 is true
         emit $ Label true
-    SAss ident exp -> do
+    SAss ident  exp -> do
         (addr, typ) <- lookupVar id
-        compileExp exp
+        compileExp typ exp
         emit $ Store typ addr
         emit $ Store typ addr
+ 
+
 
 
 compileCmp :: Type -> Exp -> Exp -> CmpOp -> Compile ()
 compileCmp typ exp1 exp2 op = do
-    compileExp exp1
-    compileExp exp2
+    compileExp typ exp1
+    compileExp typ exp2
     true <- newLabel
     false <- newLabel
     emit $ IfCmp typ op true
@@ -292,10 +313,40 @@ compileCmp typ exp1 exp2 op = do
     emit $ IConst 1
     emit $ Label false
 
+compileOrAnd:: Type -> Exp -> Compile ()
+compileOrAnd t e = do
+    ret <- compileExp $ e1 e
+    exp1true <- newLabel
+    exp1false <- newLabel
+    exp2true <- newLabel
+    exp2false <- newLabel
+    ass <-  newLabel
+    result <- newReg
+    t1 <- newReg
+    t2 <- newReg
+    emit $ Cmp (ref t1) EQU t (Ref ret) (false e)
+    emit $ BrCond (Ref t2) exp2true exp2false
+
+
+--TODO understand wtf this does
+
+initDefault :: Addr -> LLVM ()  
+initDefault p@(Addr t@(LLVMPtrType Int)  r) = 
+  mapM_ putCode [Alloc (Ref r) (LLVMType Int), Store (LLVMType Int) (Const 0) p]
+initDefault p@(Addr t@(LLVMPtrType Double) r) = 
+  mapM_ putCode [Alloc (Ref r) (LLVMType Doub), Store (LLVMType Doub) (DConst 0.0) p]
+initDefault _               = error "initDefault: Shouldnt reach here"
+
 newLabel :: Compile Label
 newLabel = do
     l <- gets nextLabel
     modify $ \ st -> st {nextLabel = succ l}
+    return l
+
+newReg :: Compile Reg
+newReg = do
+    r <- gets nextLabel
+    modify $ \ st -> st {nextReg = succ r}
     return l
 
 newBlock :: Compile a -> Compile a
@@ -369,7 +420,7 @@ modStack n = do
     when (new > old) $
         modify $ \ st -> st {limitStack = new}
 
-emit :: Instructions -> Compile ()
+emit :: Instructions -> LLVM ()
 emit (Store Void _ ptr) = return ()
 emit (Load _ Void ) = return ()
 --emit (Dup Void) = return ()

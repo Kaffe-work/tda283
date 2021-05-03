@@ -25,6 +25,8 @@ data LLVMType = LLVMType Type
 newtype Label = L { theLabel :: Int }
     deriving (Eq, Enum, Show)
 
+
+
 data Instructions
     = Alloca Value Type
     | Store Type Value Addr
@@ -39,6 +41,7 @@ data Instructions
     | Neg Type
     | Not Type
     | IConst Integer
+    | BrCond Value Label Label
     --deriving (Show)
 
 --pattern IfZ l = If OEq l
@@ -135,11 +138,11 @@ instance ToLLVM MulOp where
 
 instance Show Instructions where
     --Show Instructions = case Instructions of
-    show (Alloca val t ) = show val ++ "alloca" ++ show t
-    show (Store t v addr ) = "store " ++ show t ++ " " ++ show v ++ ", " ++ show addr
+    show (Alloca reg typ) = show reg ++ " = alloca" ++ show typ
+    show (Store typ val addr ) = "store " ++ show typ ++ " " ++ show val ++ ", " ++ show addr
         --Alloca t  -> "alloca " ++ show t -- ++ show n
         
-    show (Load val addr ) = show val ++ " = load " ++ show addr --concat ["load", show t, "* ", show addr]--todo, maybe done
+    show (Load reg addr ) = show reg ++ " = load " ++ show addr --concat ["load", show t, "* ", show addr]--todo, maybe done
     show (Call val typ addr [fnty, fnpointer] ) = "todo"
     show (Ret t ) =  "ret" ++ show t
     show (Branch l ) = concat ["br", "label", show l ]
@@ -158,7 +161,7 @@ instance Show Instructions where
                 _ -> "f" ++ tollvm op ++ show typ --Otherwise it is OTimes
     show (Neg typ ) = "fneg " ++ show typ
     show (Not typ ) = concat ["xor ", show typ, " ", ", true"] -- using xor with [a, true] will always result in the inverse of a
-    
+    show (BrCond val l1 l2 ) = "br i1 " ++ show val ++ ", label %" ++ show l1 ++ ", label %" ++ show l2
         --Return t -> prefix t ++ "ret"   --todo
         {--
         Pop _ -> "pop"
