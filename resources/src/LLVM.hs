@@ -40,8 +40,9 @@ data Instructions
     | Mul Type MulOp
     | Neg Type
     | Not Type
-    | IConst Integer
     | BrCond Value Label Label
+    | IConst Integer
+    | DConst Double
     --deriving (Show)
 
 --pattern IfZ l = If OEq l
@@ -50,8 +51,8 @@ data Instructions
 data Value =
     Ref Reg             -- %r<i>
   | Glbl Reg            -- @C<i>
-  | Const Integer       -- literal
-  | DConst Double       -- literal
+  -- | IConst Integer      -- literal
+  -- | DConst Double       -- literal
   | StrConst String     -- literal
 
 negateCmp :: CmpOp -> CmpOp
@@ -162,6 +163,8 @@ instance Show Instructions where
     show (Neg typ ) = "fneg " ++ show typ
     show (Not typ ) = concat ["xor ", show typ, " ", ", true"] -- using xor with [a, true] will always result in the inverse of a
     show (BrCond val l1 l2 ) = "br i1 " ++ show val ++ ", label %" ++ show l1 ++ ", label %" ++ show l2
+    show (IConst int) = show int
+    show (DConst double) = show double
         --Return t -> prefix t ++ "ret"   --todo
         {--
         Pop _ -> "pop"
@@ -194,8 +197,8 @@ instance Show Instructions where
 instance Show Value where
   show (Ref i)      = "%r" ++ show i
   show (Glbl i)     = "@C" ++ show i
-  show (Const i)    = show i
-  show (DConst i)   = show i
+  --show (IConst i)    = show i
+  --show (DConst i)   = show i
   show (StrConst s) = s
 
 instance Show LLVMType where

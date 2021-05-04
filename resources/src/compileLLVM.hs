@@ -18,14 +18,6 @@ import qualified Data.Map as Map
 
 import Javalette.Abs
 import LLVM 
-    --( negateCmp,
-    --  Instructions(..),
-    --  Fun(..),
-    --  Addr,
-    --  FunType(FunType),
-    --  Label(L),
-    --  Size(..),
-    --  ToLLVM(tollvm) )
 
 type Code = [Instructions]
 data Env = Env  {
@@ -153,20 +145,29 @@ compileFun t (DFun typ id args stms) = do
 
 compileStm :: Stm -> LLVM ()
 compileStm SEmpty = return ()
-compileStm (SAss x e ) = do
-    r <- compileExp t e
-    addr@(Addr _ pr ) <- newVar x
-    emit $ Store (Type t) (Ref reg ) p
 
-compileStm (DeclADecl Type Ident) = declare t items
+compileStm (SAss x e ) = do
+    return ()
+    --r <- compileExp t e
+    --addr@(Addr _ pr ) <- newVar x
+    --emit $ Store typ reg p
+
+compileStm (SDecls typ items) = declare typ items
     where 
     declare :: Type -> [Item] -> LLVM ()
     declare t [] = return ()
     declare t (NoInit x:xs) = do
-        addr <- addVar t x
+        addr <- newVar  x t
         initDefault addr 
         declare t xs
-    declar t (Init)
+    declare t (Init x e:xs) = do 
+        r <- compileExp typ e
+        addr@(Addr _ pr) <- newVar  x t
+        emit $ Alloca (Ref pr) (Type t)
+        emit $ Store (Type t) (Ref r) addr 
+        declare t xs 
+
+
 
 
 compileStm stm = do
@@ -332,9 +333,9 @@ compileOrAnd t e = do
 
 initDefault :: Addr -> LLVM ()  
 initDefault p@(Addr t@(LLVMPtrType Int)  r) = 
-  mapM_ putCode [Alloc (Ref r) (LLVMType Int), Store (LLVMType Int) (Const 0) p]
+  mapM_ emit [Alloca (Ref r) (Type Int), Store (Type Int) (Const 0) p]
 initDefault p@(Addr t@(LLVMPtrType Double) r) = 
-  mapM_ putCode [Alloc (Ref r) (LLVMType Doub), Store (LLVMType Doub) (DConst 0.0) p]
+  mapM_ emit [Alloca (Ref r) (Type Double ), Store (Type Double) (DConst 0.0) p]
 initDefault _               = error "initDefault: Shouldnt reach here"
 
 newLabel :: Compile Label
