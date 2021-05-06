@@ -2,10 +2,10 @@ module Annotated where
 
 import Javalette.Abs (Ident, Arg, Type, AddOp, MulOp, CmpOp)
 
-data Prog = Program [TopDef]
+data Prog = Program [Special]
   deriving (Eq, Ord, Show, Read)
 
-data TopDef = FnDef Type Ident [Arg] Blk
+data Special = FnDef Type Ident [Arg] Blk
   deriving (Eq, Ord, Show, Read)
 
 data Blk = Block [Stm]
@@ -43,7 +43,7 @@ data Expr
     = ELen      Id
     | EVar      Id
     | ELitInt   Integer
-    | ELitDoub  Double
+    | ELitDouble  Double
     | ELitTrue
     | ELitFalse
     | EApp Ident [TExpr]

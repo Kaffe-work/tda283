@@ -2,15 +2,22 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
 
--- | Compiler for C--, producing symbolic JVM assembler.
+-- | Compiler for Javalette, producing symbolic LLVM assembler.
+module Compiler (compile, toLLVM) where
 
-module Compiler where
 
---import Control.Monad
+import Lens.Micro.Platform hiding (Empty)
+
+import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.State
-import Control.Monad.RWS
+import Control.Monad.State.Lazy
+import Control.Monad.RWS.Lazy
+
+import Text.Printf
 
 import Data.Maybe ( fromMaybe )
 import Data.Map (Map)
@@ -22,7 +29,7 @@ import qualified Annotated as A
 type Ident = String
 
 data SL = SL J.Ident Int String
-    deriving Show 
+    deriving Show
 
 
 --pattern IfZ l = EIf OEq l
@@ -30,6 +37,13 @@ data SL = SL J.Ident Int String
 
 type Cxts = [Block]
 type Block = [(Ident, Type)]
+
+data St = St {
+    nextReg :: Int
+ ,  nextLabel :: Int
+  -- | keep track of which variables are function arguments in each block
+ ,  funArgs :: [[Reg]]
+}
 
 --data St = St {
 --    sig :: Sig,
@@ -40,12 +54,12 @@ type Block = [(Ident, Type)]
 --    nextLabel :: Label,
 --    output :: Output
 --}
-data St = St {
-    nextReg :: Int,
-    nextLabel :: Int, 
-    fArgs :: [[Reg]]
-
-}
+--data St = St {
+--    nextReg :: Int,
+--    nextLabel :: Int,
+--    fArgs :: [[Reg]]
+--
+--}
 
 
 newtype Env = Env {
@@ -55,7 +69,7 @@ newtype Env = Env {
 data Output = Output { _code :: [Code], _typedefs :: [Code]}
   deriving Show
 
-data Val = IntLit Integer | DoubLit Double | RegName Reg | StringName String
+data Val = IntLit Integer | DoubleLit Double | RegName Reg | StringName String
   deriving Show
 
 data Type = Int | Double | Bool | Char | Void | Str Int |
@@ -103,6 +117,8 @@ data Code = Comment String
   deriving Show
 
 
+instance Monoid Output where
+  mempty = Output [] []
 
 
 
@@ -131,7 +147,7 @@ instance ToLLVM Type where
 
 instance ToLLVM Val where
   toLLVM (IntLit i)  = show i
-  toLLVM (DoubLit d) = show d
+  toLLVM (DoubleLit d) = show d
   toLLVM (RegName r) = '%' : r
   toLLVM (StringName s) = '@' : s
 
@@ -159,7 +175,7 @@ emitSpecial :: Code -> Compile ()
 emitSpecial special = tell $ Output [] [special]
 
 fState :: St
-fState =  St 0 0 [] 0 Map.empty 
+fState =  St 0 0 [] 0 Map.empty
 
 newReg :: Compile Reg
 newReg = nextReg += 1 >> ("t" <>) . show <$> use nextReg
@@ -170,13 +186,13 @@ newLabel = nextLabel += 1 >> ("t" <>) . show <$> use nextLabel
 
 --todo : evaluate
 grabOutput :: Compile () -> Compile [Code]
-grabOutput m = do
-    s <- get 
+grabOutput ma = do
+    s <- get
     r <- ask
-    let ((), s', (Output c tds)) = runRWS m r sSt
+    let ((), s', (Output c special)) = runRWS ma r s
     mapM_ emitSpecial special
     put s'
-    return c 
+    return c
 
 toType :: J.Type -> Type
 toType J.Int     = Int
@@ -206,17 +222,29 @@ instance ToLLVM [LLVMable] where
 compile :: A.Prog  -> [LLVMable]
 compile p@(A.Program specials) = prolog <> strs <> map LL typedefs <> map LL program
   where prolog = map LL [Declare Void      "printInt" [Int],
-                         Declare Void      "printDouble" [Doub],
+                         Declare Void      "printDouble" [Double],
                          Declare Void      "printString" [Ptr Char],
                          Declare Int       "readInt" [],
-                         Declare Doub      "readDouble" [],
+                         Declare Double      "readDouble" [],
                          Declare (Ptr Int) "calloc" [Int, Int]]
         strLits = getStrLits p
         strs = map LL $ Map.elems strLits
         (Output program typedefs) = snd $
-          evalRWS (mapM_ compileTD tds) (Env strLits) startState
+          evalRWS (mapM_ compileSpecial specials) (Env strLits) fState
 
 --Todo : fix top level generation of code. need to make other stuff first to understand this
+compileSpecial :: A.Special -> Compile()
+compileSpecial (A.FnDef t (J.Ident s) args (A.Block  ss)) = do
+  funArgs %= ((map snd args'):)
+  stmList <- grabOutput $ mapM_  compileStm ss
+  funArgs %= tail
+  defret <- defaultRet t
+  let ss' = stmList <> defret
+  emit $ Define t' s args' $ (Label "entry") : ss'
+    where t'    = toType t
+          args' = map (\(J.ADecl t (J.Ident i)) -> (toType t,i)) args
+
+
 
 --    | BStmt Blk
 --    | Decl Type [Item]
@@ -237,7 +265,7 @@ compileStm :: A.Stm -> Compile ()
 compileStm (A.Empty ) = comment "noSTM"
 
 compileStm (A.Ret e) = do
-  reg <- compileExp e 
+  reg <- compileExp e
   emit $ return (getType e) (regName reg)
 
 compileStm A.VRet = do
@@ -248,17 +276,19 @@ compileStm (A.SExp texpr) = do
 
 --if else stm 
 compileStm (A.CondElse te stm1 stm2) = do
+            ifEqual <- newLabel
+            ifNotEqual <- newLabel
             true <- newLabel
             false <- newLabel
             done <- newLabel
             res <- compileExp te
             cmp <- newReg
             emit $ EQU cmp Bool (RegName res) (IntLit 0)
-            emit CondBranch cmp ifequal ifnotequal
-            emit $ Label ifnotequal
+            emit $ CondBranch cmp ifEqual ifNotEqual
+            emit $ Label ifNotEqual
             compileStm stm1
             emit $ Branch done
-            emit $ Label ifequal
+            emit $ Label ifEqual
             compileStm stm2
             emit $ Branch done
             emit $ Label done
@@ -266,29 +296,54 @@ compileStm (A.CondElse te stm1 stm2) = do
 
 --if stm condition, piggyback on ifelse
 compileStm (A.Cond t s1) = do
-  compileStm $ A.CondElse t s1 Stm $ A.Empty 
+  compileStm $ A.CondElse t s1 A.Empty
 
 compileStm (A.While exp stm) = do
-  compWhile te $ compileStm stm
+  compWhile exp $ compileStm stm
 
 
 
 
 
 compileExp :: A.TExpr -> Compile Reg
-compileExp (A.TExpr t (A.EVar (A.IdId i es))) = 
+compileExp (A.TExpr t (A.EVar (A.IdId i))) =
   getVar i (toType t)
 
 compileExp (A.TExpr t (A.Neg te)) = do
-  r <- compileExp te 
-  res <- newReg
-  case t of 
+  r <- compileExp te
+  result <- newReg
+  case t of
     J.Int -> emit $ Mul result Int (RegName r) (IntLit (-1))
     J.Double  -> emit $ FNeg result (RegName r)
   pure result
 
-compileExp (A.TExpr _ (A.ELitTrue )) >> mkLit Bool $ (IntLit 1)
-
-compileExp (A.TExpr _ (A.ELitFalse )) >> mkLit Bool $ (IntLit 0)
 
 
+compileExp (A.TExpr _ A.ELitTrue) = mkLit Bool $ IntLit 1
+
+compileExp (A.TExpr _ A.ELitFalse) = mkLit Bool $ IntLit 0
+
+compileExp (A.TExpr _ (A.ELitInt i)) = mkLit Bool $ IntLit i
+
+compileExp (A.TExpr _ (A.ELitDouble d )) = mkLit Bool $ DoubleLit d
+
+
+
+mkLit :: Type -> Val -> Compile Reg
+mkLit t v = do
+  nr <- newReg
+  emit $ Alloca t nr
+  emit $ Store t v (Ptr t) (RegName nr)
+  nr2 <- newReg
+  emit $ Load nr2 t nr
+  pure nr2
+
+getVar :: J.Ident -> Type -> Compile Reg
+getVar i@(J.Ident i') t = do
+  fa <- gets _funArgs
+  if i' `elem` (head fa)
+    then pure i'
+    else do
+      nr <- newReg
+      emit $ Load nr t i'
+      pure nr
