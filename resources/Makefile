@@ -11,7 +11,14 @@ tarfile = part$(part)-$(resubmission).tar.gz
 ############ Rules to build the compiler:
 all : $(files) src/Javalette/Test
 
+
 	ghc --make src/jlc.hs -isrc -o jlc
+
+stackbuild : package.yaml stack.yaml
+	stack install alex happy
+	stack build --only-dependencies
+
+
 src/Javalette/Test : src/Javalette/Test.hs src/Javalette/Par.hs src/Javalette/Lex.hs
 	ghc --make -isrc $< -o $@
 #	happy --ghc --coerce --array --info $<

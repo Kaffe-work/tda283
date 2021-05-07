@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wunused-top-binds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -5,11 +6,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 
--- | Compiler for Javalette, producing symbolic LLVM assembler.
-module CompileLLVM (compile, toLLVM) where
+module CompileLLVM ( toLLVM) where
 
 
---import Lens.Micro.Platform hiding (Empty)
+import Lens.Micro.Platform hiding (Empty)
 
 import Control.Monad
 import Control.Monad.Reader
@@ -33,8 +33,6 @@ data SL = SL Ident Int String
     deriving Show
 
 
---pattern IfZ l = EIf OEq l
---pattern IfNZ l = If ONEq l
 
 type Cxts = [Block]
 type Block = [(Ident, Type)]
@@ -42,25 +40,9 @@ type Block = [(Ident, Type)]
 data St = St {
     nextReg :: Int
  ,  nextLabel :: Int
-  -- | keep track of which variables are function arguments in each block
  ,  _funArgs :: [[Reg]]
 }
 
---data St = St {
---    sig :: Sig,
---    cxts :: Cxts,
---    limitLocals :: Int,
---    currentStack :: Int,
---    limitStack :: Int,
---    nextLabel :: Label,
---    output :: Output
---}
---data St = St {
---    nextReg :: Int,
---    nextLabel :: Int,
---    fArgs :: [[Reg]]
---
---}
 
 -- temp : eval todo
 
@@ -81,7 +63,6 @@ stmStrLits (A.Cond _ s)           = stmStrLits s
 stmStrLits (A.CondElse _ s1 s2)   = stmStrLits s1 >> stmStrLits s2
 stmStrLits (A.While _ s)          = stmStrLits s
 stmStrLits (A.SExp (A.TExpr _ e)) = expStrLits e
-stmStrLits (A.For _ _ _ s)        = stmStrLits s
 stmStrLits _ = pure ()
 
 expStrLits :: A.Expr -> StringLitScanner
@@ -170,12 +151,6 @@ data Code = Comment String
           | Branch String
           | CondBranch Reg String String
           | Call Reg String Type [Type] [Val]
-        --  | GetEP Reg Type Type Val [Val] [Type]
-        --  | Phi Reg Type Val String Val String
-        --  | BitCast Reg Type Reg Type
-        --  | ArrStructDef String Type
-        --  | PtrTypeDef String Type
-        --  | IntToPtr Reg Type Val Type
   deriving Show
 
 
@@ -185,10 +160,6 @@ instance Monoid Output where
 
 
 
-
-
---class ToLLVM a where
---  toLLVM :: a -> String
 
 indent :: String -> String
 indent s = if null s then s else "\t" ++ s
@@ -227,7 +198,7 @@ tBytes _ = error "tBytes on type that should not be possible"
 
   --- HELPER FUNCTIONS BELOW ---
 
-
+makeLenses ''St
 
 --could use show?? TODO
 emit :: Code -> Compile ()
@@ -294,7 +265,7 @@ compile p@(A.Program specials) = prolog <> strs <> map LL typedefs <> map LL pro
         (Output program typedefs) = snd $
           evalRWS (mapM_ compileSpecial specials) (Env strLits) fState
 
---Todo : fix top level generation of code. need to make other stuff first to understand this
+--Todo : fix top level generation of code. this not done yet. 
 compileSpecial :: A.Special -> Compile()
 compileSpecial (A.FnDef t (J.Ident s) args (A.Block  ss)) = do
   funArgs %= (map snd args':)
@@ -313,18 +284,7 @@ defaultRet J.Bool  = pure [Return Bool (IntLit 0)]
 defaultRet J.Void = pure [VReturn]
 
 
---    | BStmt Blk
---    | Decl Type [Item]
---    | Ass Id TExpr
---    | Incr Id
---    | Decr Id
---    | Ret TExpr
---    | VRet
---    | Cond TExpr Stm
---    | CondElse TExpr Stm Stm
---    | While TExpr Stm
---    | For Type Ident TExpr Stm
---    | SExp TExpr
+
 
 
 compileStm :: A.Stm -> Compile ()
