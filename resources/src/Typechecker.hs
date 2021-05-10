@@ -9,6 +9,7 @@ import Debug.Trace
 import Javalette.Abs
 import Javalette.Print
 import Javalette.ErrM
+import qualified Annotated as A
 
 type Env = (Sig, [Context])
 type Sig = Map Ident ([Type], Type)
@@ -24,7 +25,7 @@ typecheck (PDefs defs) = do
         Bad str -> Bad str
         _ -> case checkDefs env2 defs of
             Bad str -> Bad str
-            _ -> checkReturns env2 defs
+            _ -> checkReturns env2 defs 
 
 
 checkReturns :: Env -> [Def] -> Err ()

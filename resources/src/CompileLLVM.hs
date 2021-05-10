@@ -4,18 +4,20 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module CompileLLVM ( toLLVM) where
+module CompileLLVM (compile, toLLVM) where
 
 
 import Lens.Micro.Platform hiding (Empty)
 
 import Control.Monad
 import Control.Monad.Reader
-import Control.Monad.Writer
-import Control.Monad.State
+import Control.Monad.Writer.Lazy
+    ( execWriter, MonadWriter(tell), Writer )
 import Control.Monad.State.Lazy
+
 import Control.Monad.RWS.Lazy
 
 import Text.Printf
@@ -34,12 +36,12 @@ data SL = SL Ident Int String
 
 
 
-type Cxts = [Block]
-type Block = [(Ident, Type)]
+--type Cxts = [Block]
+--type Block = [(Ident, Type)]
 
 data St = St {
-    nextReg :: Int
- ,  nextLabel :: Int
+    _nextReg :: Int
+ ,  _nextLabel :: Int
  ,  _funArgs :: [[Reg]]
 }
 
@@ -98,12 +100,16 @@ instance ToLLVM Code where
 
   toLLVM (Alloca t i) = indent $ printf "%%%s = alloca %s" i $ toLLVM t
 
+  toLLVM c = error $ show c
+
 
 formatArgs :: [Type] -> [Val] -> String
 formatArgs ts vs = intercalate ", "
   [(toLLVM t) <> " " <> (toLLVM v)| (t, v) <- zip ts vs]
 
 -- end temp
+
+type Compile = RWS Env Output St
 
 newtype Env = Env {
   _strings :: Map String SL
@@ -112,6 +118,11 @@ newtype Env = Env {
 data Output = Output { _code :: [Code], _typedefs :: [Code]}
   deriving Show
 
+
+instance Semigroup Output where
+  (Output c1 tds1) <> (Output c2 tds2) = Output (c1 ++ c2) (tds1 ++ tds2)
+
+
 data Val = IntLit Integer | DoubleLit Double | RegName Reg | StringName String
   deriving Show
 
@@ -119,7 +130,9 @@ data Type = Int | Double | Bool | Char | Void | Str Int |
             Ptr Type | Arr Type | Custom String
   deriving (Show, Eq, Ord)
 
-type Compile = State St
+--type Compile = State St
+
+
 
 type Reg = String
 
@@ -164,8 +177,7 @@ instance Monoid Output where
 indent :: String -> String
 indent s = if null s then s else "\t" ++ s
 
-comment :: String -> Compile ()
-comment = emit . Comment
+
 
 instance ToLLVM Type where
   toLLVM Int  = "i32"
@@ -187,6 +199,10 @@ instance ToLLVM Val where
 instance ToLLVM Arg where
   toLLVM (t,s) = toLLVM t <> " %" <> s
 
+instance ToLLVM SL where 
+  toLLVM (SL name len str) = printf
+    "junk" name (show len) str
+
 tBytes :: Type -> Integer
 tBytes Int = 4
 tBytes Double = 8
@@ -200,6 +216,9 @@ tBytes _ = error "tBytes on type that should not be possible"
 
 makeLenses ''St
 
+comment :: String -> Compile ()
+comment = emit . Comment
+
 --could use show?? TODO
 emit :: Code -> Compile ()
 emit c = tell $ Output [c] []
@@ -207,8 +226,8 @@ emit c = tell $ Output [c] []
 emitSpecial :: Code -> Compile ()
 emitSpecial special = tell $ Output [] [special]
 
-fState :: St
-fState =  St 0 0 [] 0 Map.empty
+initState :: St
+initState =  St 0 0 []
 
 newReg :: Compile Reg
 newReg = nextReg += 1 >> ("t" <>) . show <$> use nextReg
@@ -252,8 +271,10 @@ instance ToLLVM [LLVMable] where
   toLLVM lls = unlines $ map toLLVM lls
 
 
+
 compile :: A.Prog  -> [LLVMable]
-compile p@(A.Program specials) = prolog <> strs <> map LL typedefs <> map LL program
+compile p@(A.Program specials) =
+   prolog <> strs <> map LL typedefs <> map LL program
   where prolog = map LL [Declare Void      "printInt" [Int],
                          Declare Void      "printDouble" [Double],
                          Declare Void      "printString" [Ptr Char],
@@ -263,12 +284,12 @@ compile p@(A.Program specials) = prolog <> strs <> map LL typedefs <> map LL pro
         strLits = getStrLits p
         strs = map LL $ Map.elems strLits
         (Output program typedefs) = snd $
-          evalRWS (mapM_ compileSpecial specials) (Env strLits) fState
+          evalRWS (mapM_ compileSpecial specials) (Env strLits) initState
 
 --Todo : fix top level generation of code. this not done yet. 
 compileSpecial :: A.Special -> Compile()
 compileSpecial (A.FnDef t (J.Ident s) args (A.Block  ss)) = do
-  funArgs %= (map snd args':)
+  funArgs %= ((map snd args') :)
   stmList <- grabOutput $ mapM_  compileStm ss
   funArgs %= tail
   defret <- defaultRet t
@@ -284,16 +305,12 @@ defaultRet J.Bool  = pure [Return Bool (IntLit 0)]
 defaultRet J.Void = pure [VReturn]
 
 
-
-
-
 compileStm :: A.Stm -> Compile ()
-
 compileStm A.Empty = comment "noSTM"
 
 compileStm (A.Ret e) = do
   reg <- compileExp e
-  emit $ return (getType e) (RegName reg)
+  emit $ Return (getType e) (RegName reg)
 
 compileStm A.VRet =
   emit VReturn
